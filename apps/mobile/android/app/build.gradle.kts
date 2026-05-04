@@ -3,10 +3,11 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services")
 }
 
 android {
-    namespace = "com.example.mobile"
+    namespace = "com.example.finance_manager"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -21,7 +22,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.mobile"
+        applicationId = "com.example.finance_manager"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -29,6 +30,7 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
+
 
     buildTypes {
         release {
@@ -41,4 +43,19 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // ... تبعيات أخرى مثل تبعيات Flutter الخاصة بك
+
+    // استيراد Firebase BoM
+    // implementation(platform("com.google.firebase:firebase-bom:32.7.4"))
+
+    // أضف منتجات Firebase التي تريد استخدامها
+    // على سبيل المثال، لمصادقة Firebase:
+    // implementation("com.google.firebase:firebase-auth-ktx")
+    // لمنتجات أخرى، مثل Cloud Firestore:
+    // implementation("com.google.firebase:firebase-firestore-ktx")
+    // لتسجيل الدخول باستخدام Google:
+    // implementation("com.google.android.gms:play-services-auth:20.5.0") // استخدم أحدث إصدار
 }
