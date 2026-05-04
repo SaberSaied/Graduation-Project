@@ -3,7 +3,7 @@ import { prisma } from '../../config/database';
 import { hashPassword, comparePassword, generateToken } from '../../utils/auth.utils';
 import { AppError } from '../../middleware/error.middleware';
 import { OAuth2Client } from 'google-auth-library';
-import { env } from '../../config/env';
+import { env } from '@/config/env';
 
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
@@ -148,10 +148,22 @@ export const googleSignIn = async (req: Request, res: Response, next: NextFuncti
       throw new AppError('Google ID token is required', 400);
     }
 
-    // Verify token with Google
+    // Debug: Print token audience to identify mismatch
+    try {
+      const parts = idToken.split('.');
+      if (parts.length === 3) {
+        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+      }
+    } catch (e) {
+      console.error('Failed to decode token for debugging:', e);
+    }
+
     const ticket = await googleClient.verifyIdToken({
       idToken,
-      audience: env.GOOGLE_CLIENT_ID,
+      audience: [
+        env.GOOGLE_CLIENT_ID as string,
+        '452414717624-bdeiqlg62avo82mv9420orqdtjt8hfe3.apps.googleusercontent.com' // Android Client ID
+      ],
     });
 
     const payload = ticket.getPayload();

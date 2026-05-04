@@ -16,7 +16,7 @@ export async function getUserById(userId: string) {
   });
 }
 
-export async function updateUser(userId: string, data: { name?: string; currency?: string; financialGoal?: string }) {
+export async function updateUser(userId: string, data: { name?: string; currency?: string; financialGoal?: string; image?: string }) {
   return prisma.user.update({
     where: { id: userId },
     data,

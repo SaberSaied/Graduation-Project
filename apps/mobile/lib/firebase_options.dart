@@ -20,10 +20,10 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: "AIzaSyCM_p3dRSEuc-8wS1KKK1D5v0UcVEDSJ4Q",
-    appId: "1:452414717624:android:399c7eeb05b00a86ad7e4d",
-    messagingSenderId: "452414717624",
-    projectId: "finance-app-56182",
-    storageBucket: "finance-app-56182.firebasestorage.app",
+    apiKey: const String.fromEnvironment('FIREBASE_API_KEY', defaultValue: '[GCP_API_KEY]'),
+    appId: const String.fromEnvironment('FIREBASE_APP_ID', defaultValue: '1:452414717624:android:399c7eeb05b00a86ad7e4d'),
+    messagingSenderId: const String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID', defaultValue: '452414717624'),
+    projectId: const String.fromEnvironment('FIREBASE_PROJECT_ID', defaultValue: 'finance-app-56182'),
+    storageBucket: const String.fromEnvironment('FIREBASE_STORAGE_BUCKET', defaultValue: 'finance-app-56182.firebasestorage.app'),
   );
 }

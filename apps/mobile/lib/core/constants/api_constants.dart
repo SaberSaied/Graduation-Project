@@ -11,7 +11,10 @@ class ApiConstants {
     return 'https://backend-finance-production-2637.up.railway.app/api/v1/';
   }
 
-  static const String googleClientId = '452414717624-bkfptr7c87e6s7aq8rr46qpll6uqu67i.apps.googleusercontent.com';
+  static const String googleClientId = String.fromEnvironment(
+    'GOOGLE_CLIENT_ID',
+    defaultValue: '452414717624-bkfptr7c87e6s7aq8rr46qpll6uqu67i.apps.googleusercontent.com',
+  );
 
   // Auth
   static String get authSignUp => '${baseUrl}auth/sign-up/email';

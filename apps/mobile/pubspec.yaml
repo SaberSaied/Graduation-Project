@@ -1,6 +1,6 @@
-name: finance_manager
+name: Finance_Manager
 description: "Personal Finance & Savings Mobile App"
-publish_to: 'none'
+publish_to: "none"
 
 version: 1.0.0+1
 

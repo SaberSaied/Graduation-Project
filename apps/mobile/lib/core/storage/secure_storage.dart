@@ -30,6 +30,19 @@ class SecureStorage {
     return _storage.read(key: _userIdKey);
   }
 
+  // Generic Secrets
+  Future<void> writeSecret(String key, String value) async {
+    await _storage.write(key: key, value: value);
+  }
+
+  Future<String?> readSecret(String key) async {
+    return _storage.read(key: key);
+  }
+
+  Future<void> deleteSecret(String key) async {
+    await _storage.delete(key: key);
+  }
+
   // Clear all
   Future<void> clearAll() async {
     await _storage.deleteAll();

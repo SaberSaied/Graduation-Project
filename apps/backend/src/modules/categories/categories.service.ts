@@ -2,7 +2,7 @@ import { prisma } from '../../config/database';
 import { AppError } from '../../middleware/error.middleware';
 
 export async function getCategories(userId: string) {
-  return prisma.category.findMany({
+  const allCategories = await prisma.category.findMany({
     where: {
       OR: [
         { isDefault: true },
@@ -10,6 +10,14 @@ export async function getCategories(userId: string) {
       ],
     },
     orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
+  });
+
+  // Filter out default categories if the user has a custom one with the same name and type
+  const userCats = allCategories.filter(c => c.userId === userId);
+  return allCategories.filter(c => {
+    if (!c.isDefault) return true;
+    const hasCustom = userCats.some(uc => uc.name === c.name && uc.type === c.type);
+    return !hasCustom;
   });
 }
 
@@ -23,7 +31,7 @@ export async function createCategory(userId: string, data: { name: string; icon:
   });
 }
 
-export async function updateCategory(categoryId: string, userId: string, data: { name?: string; icon?: string; color?: string }) {
+export async function updateCategory(categoryId: string, userId: string, data: { name?: string; icon?: string; color?: string; type?: 'INCOME' | 'EXPENSE' }) {
   const category = await prisma.category.findUnique({ where: { id: categoryId } });
 
   if (!category) {
@@ -31,7 +39,17 @@ export async function updateCategory(categoryId: string, userId: string, data: {
   }
 
   if (category.isDefault) {
-    throw new AppError('Cannot modify default categories', 403);
+    // Create a new user-specific category instead of updating the global default
+    return prisma.category.create({
+      data: {
+        name: data.name ?? category.name,
+        icon: data.icon ?? category.icon,
+        color: data.color ?? category.color,
+        type: (data.type ?? category.type) as any,
+        userId,
+        isDefault: false,
+      },
+    });
   }
 
   if (category.userId !== userId) {
