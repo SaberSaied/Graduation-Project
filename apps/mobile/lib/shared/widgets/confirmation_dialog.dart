@@ -1,0 +1,63 @@
+import 'package:flutter/material.dart';
+
+class ConfirmationDialog extends StatelessWidget {
+  final String title;
+  final String message;
+  final String confirmLabel;
+  final String cancelLabel;
+  final Color? confirmColor;
+  final VoidCallback onConfirm;
+
+  const ConfirmationDialog({
+    super.key,
+    required this.title,
+    required this.message,
+    this.confirmLabel = 'Confirm',
+    this.cancelLabel = 'Cancel',
+    this.confirmColor,
+    required this.onConfirm,
+  });
+
+  static Future<bool?> show(
+    BuildContext context, {
+    required String title,
+    required String message,
+    String confirmLabel = 'Confirm',
+    String cancelLabel = 'Cancel',
+    Color? confirmColor,
+  }) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => ConfirmationDialog(
+        title: title,
+        message: message,
+        confirmLabel: confirmLabel,
+        cancelLabel: cancelLabel,
+        confirmColor: confirmColor,
+        onConfirm: () => Navigator.of(context).pop(true),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text(title),
+      content: Text(message),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: Text(cancelLabel),
+        ),
+        ElevatedButton(
+          onPressed: onConfirm,
+          style: confirmColor != null
+              ? ElevatedButton.styleFrom(backgroundColor: confirmColor)
+              : null,
+          child: Text(confirmLabel),
+        ),
+      ],
+    );
+  }
+}
