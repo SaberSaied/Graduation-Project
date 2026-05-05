@@ -3,7 +3,7 @@ import { prisma } from '../../config/database';
 import { hashPassword, comparePassword, generateToken } from '../../utils/auth.utils';
 import { AppError } from '../../middleware/error.middleware';
 import { OAuth2Client } from 'google-auth-library';
-import { env } from '@/config/env';
+import { env } from '../../config/env';
 
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
