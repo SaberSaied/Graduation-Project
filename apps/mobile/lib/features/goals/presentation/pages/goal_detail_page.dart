@@ -12,6 +12,7 @@ import '../../../../shared/widgets/error_widget.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../core/models/models.dart';
+import '../widgets/goal_dialog.dart';
 import 'goals_page.dart';
 
 final goalDetailProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, id) async {
@@ -170,45 +171,15 @@ class GoalDetailPage extends ConsumerWidget {
   }
 
   void _showEditDialog(BuildContext context, WidgetRef ref, Map<String, dynamic> goalData) {
-    final titleController = TextEditingController(text: goalData['title']);
-    final targetController = TextEditingController(text: goalData['targetAmount'].toString());
-    
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Edit Goal'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppTextField(controller: titleController, label: 'Title'),
-            const SizedBox(height: 16),
-            AppTextField(
-              controller: targetController,
-              label: 'Target Amount',
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                final client = ref.read(dioClientProvider);
-                await client.patch('${ApiConstants.goals}/${goalData['id']}', data: {
-                  'title': titleController.text,
-                  'targetAmount': double.parse(targetController.text),
-                });
-                ref.invalidate(goalDetailProvider(goalId));
-                ref.invalidate(goalsProvider);
-                if (ctx.mounted) Navigator.pop(ctx);
-              } catch (_) {}
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
+      builder: (ctx) => GoalDialog(goal: Goal.fromJson(goalData)),
+    ).then((value) {
+      if (value == true) {
+        ref.invalidate(goalDetailProvider(goalId));
+        ref.invalidate(goalsProvider);
+      }
+    });
   }
 
   void _confirmDelete(BuildContext context, WidgetRef ref, Map<String, dynamic> goalData) {

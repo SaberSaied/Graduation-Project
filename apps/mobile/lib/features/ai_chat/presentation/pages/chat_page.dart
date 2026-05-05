@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'package:dio/dio.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/network/network_providers.dart';
@@ -28,11 +33,16 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   String? _sessionId;
   bool _isLoading = false;
 
+  final _imagePicker = ImagePicker();
+  final _audioRecorder = AudioRecorder();
+  bool _isRecording = false;
+  File? _selectedImage;
+
   @override
   void initState() {
     super.initState();
     _messages.add(ChatMessage(
-      content: "Hi! I'm FinanceAI 🤖\n\nI can help you:\n- Understand your spending patterns\n- Give saving tips based on your data\n- Add transactions via natural language\n- Answer financial questions\n\nHow can I help you today?",
+      content: "Hi! I'm FinanceAI 🤖\n\nI can help you:\n- Understand your spending patterns\n- Give saving tips based on your data\n- Add transactions via natural language (text or voice)\n- Analyze receipts and bills from photos\n- Answer financial questions\n\nHow can I help you today?",
       isUser: false,
     ));
   }
@@ -41,26 +51,73 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   void dispose() {
     _controller.dispose();
     _scrollController.dispose();
+    _audioRecorder.dispose();
     super.dispose();
   }
 
-  Future<void> _sendMessage() async {
+  Future<void> _pickImage() async {
+    final image = await _imagePicker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() => _selectedImage = File(image.path));
+    }
+  }
+
+  Future<void> _toggleRecording() async {
+    if (_isRecording) {
+      final path = await _audioRecorder.stop();
+      setState(() => _isRecording = false);
+      if (path != null) {
+        _sendMultimodalMessage(audioPath: path);
+      }
+    } else {
+      if (await _audioRecorder.hasPermission()) {
+        final dir = await getApplicationDocumentsDirectory();
+        final path = '${dir.path}/recording.m4a';
+        await _audioRecorder.start(const RecordConfig(), path: path);
+        setState(() => _isRecording = true);
+      }
+    }
+  }
+
+  Future<void> _sendMultimodalMessage({String? audioPath}) async {
     final text = _controller.text.trim();
-    if (text.isEmpty || _isLoading) return;
+    final image = _selectedImage;
+    
+    if (text.isEmpty && image == null && audioPath == null) return;
+    if (_isLoading) return;
 
     setState(() {
-      _messages.add(ChatMessage(content: text, isUser: true));
+      if (text.isNotEmpty) _messages.add(ChatMessage(content: text, isUser: true));
+      if (image != null) _messages.add(ChatMessage(content: '📷 Image attached', isUser: true));
+      if (audioPath != null) _messages.add(ChatMessage(content: '🎤 Voice message', isUser: true));
       _isLoading = true;
+      _selectedImage = null;
     });
+    
     _controller.clear();
     _scrollToBottom();
 
     try {
       final client = ref.read(dioClientProvider);
-      final response = await client.post(ApiConstants.aiChat, data: {
+      
+      final formData = FormData.fromMap({
         'message': text,
         'sessionId': _sessionId,
       });
+
+      if (image != null) {
+        formData.files.add(MapEntry(
+          'file',
+          await MultipartFile.fromFile(image.path, filename: 'image.jpg'),
+        ));
+      } else if (audioPath != null) {
+        formData.files.add(MapEntry(
+          'file',
+          await MultipartFile.fromFile(audioPath, filename: 'audio.m4a'),
+        ));
+      }
+
+      final response = await client.post(ApiConstants.aiChat, data: formData);
 
       final data = response.data['data'];
       _sessionId = data['sessionId'];
@@ -70,11 +127,24 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         _messages.add(ChatMessage(content: aiMessage, isUser: false));
       });
 
-      // Check for transaction action
+      // Check for action completion
       if (data['action'] != null) {
+        final actionType = data['action']['type'];
+        String successText = '✅ Action completed successfully!';
+        
+        if (actionType == 'ADD_TRANSACTION') {
+          successText = '✅ Transaction added successfully!';
+        } else if (actionType == 'ADD_CATEGORY') {
+          successText = '✅ Category created successfully!';
+        } else if (actionType == 'ADD_BUDGET') {
+          successText = '✅ Budget set successfully!';
+        } else if (actionType == 'ADD_GOAL') {
+          successText = '✅ Goal created successfully!';
+        }
+
         setState(() {
           _messages.add(ChatMessage(
-            content: '✅ Transaction added successfully!',
+            content: successText,
             isUser: false,
           ));
         });
@@ -92,6 +162,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       _scrollToBottom();
     }
   }
+
+  Future<void> _sendMessage() => _sendMultimodalMessage();
 
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 100), () {
@@ -146,45 +218,90 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           // Input bar
           Container(
             padding: EdgeInsets.only(
-              left: 16, right: 8, top: 8,
+              left: 8, right: 8, top: 8,
               bottom: MediaQuery.of(context).padding.bottom + 8,
             ),
             decoration: BoxDecoration(
               color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
               border: Border(top: BorderSide(color: isDark ? AppColors.dividerDark : AppColors.dividerLight)),
             ),
-            child: Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => _sendMessage(),
-                    maxLines: 4,
-                    minLines: 1,
-                    decoration: InputDecoration(
-                      hintText: 'Ask me anything about your finances...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide.none,
+                if (_selectedImage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8, left: 8),
+                    child: Row(
+                      children: [
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(_selectedImage!, width: 60, height: 60, fit: BoxFit.cover),
+                            ),
+                            Positioned(
+                              top: -10,
+                              right: -10,
+                              child: GestureDetector(
+                                onTap: () => setState(() => _selectedImage = null),
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                                  child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: _isLoading ? null : _pickImage,
+                      icon: Icon(Icons.image_outlined, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                    ),
+                    IconButton(
+                      onPressed: _isLoading ? null : _toggleRecording,
+                      icon: Icon(
+                        _isRecording ? Icons.stop_circle : Icons.mic_none_rounded,
+                        color: _isRecording ? Colors.red : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
                       ),
-                      filled: true,
-                      fillColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                IconButton(
-                  onPressed: _isLoading ? null : _sendMessage,
-                  icon: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      gradient: AppColors.primaryGradient,
-                      shape: BoxShape.circle,
+                    Expanded(
+                      child: TextField(
+                        controller: _controller,
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: (_) => _sendMessage(),
+                        maxLines: 4,
+                        minLines: 1,
+                        decoration: InputDecoration(
+                          hintText: _isRecording ? 'Recording...' : 'Ask me anything...',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide.none,
+                          ),
+                          filled: true,
+                          fillColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        ),
+                      ),
                     ),
-                    child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
-                  ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      onPressed: _isLoading ? null : _sendMessage,
+                      icon: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          gradient: AppColors.primaryGradient,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

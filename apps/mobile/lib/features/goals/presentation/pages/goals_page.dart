@@ -13,6 +13,7 @@ import '../../../../shared/widgets/empty_state_widget.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../core/models/models.dart';
+import '../widgets/goal_dialog.dart';
 
 final goalsProvider = FutureProvider.autoDispose<List<Goal>>((ref) async {
   final client = ref.watch(dioClientProvider);
@@ -91,11 +92,21 @@ class GoalsPage extends ConsumerWidget {
                                   children: [
                                     Text(goal.title, style: AppTextStyles.headlineSmall),
                                     const SizedBox(height: 2),
-                                    Text(
-                                      goal.status == 'COMPLETED' ? '✅ Completed' : 'In progress',
-                                      style: AppTextStyles.bodySmall.copyWith(
-                                        color: goal.status == 'COMPLETED' ? AppColors.income : (isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight),
-                                      ),
+                                    Builder(
+                                      builder: (context) {
+                                        String statusText = 'In progress';
+                                        Color statusColor = isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight;
+                                        
+                                        if (goal.status == 'COMPLETED') {
+                                          statusText = '✅ Completed';
+                                          statusColor = AppColors.income;
+                                        } else if (goal.status == 'CANCELLED') {
+                                          statusText = '❌ Cancelled';
+                                          statusColor = AppColors.errorLight;
+                                        }
+                                        
+                                        return Text(statusText, style: AppTextStyles.bodySmall.copyWith(color: statusColor));
+                                      },
                                     ),
                                   ],
                                 ),
@@ -143,92 +154,10 @@ class GoalsPage extends ConsumerWidget {
   void _showGoalDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
-      builder: (ctx) => const _GoalDialog(),
+      builder: (ctx) => const GoalDialog(),
     ).then((value) {
       if (value == true) ref.invalidate(goalsProvider);
     });
-  }
-}
-
-class _GoalDialog extends ConsumerStatefulWidget {
-  const _GoalDialog();
-
-  @override
-  ConsumerState<_GoalDialog> createState() => _GoalDialogState();
-}
-
-class _GoalDialogState extends ConsumerState<_GoalDialog> {
-  final _titleController = TextEditingController();
-  final _targetController = TextEditingController();
-  String _selectedIcon = '🎯';
-  DateTime? _deadline;
-  bool _isLoading = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('New Savings Goal'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AppTextField(controller: _titleController, label: 'Title', hint: 'e.g. New Car'),
-          const SizedBox(height: 16),
-          AppTextField(
-            controller: _targetController,
-            label: 'Target Amount',
-            hint: '0.00',
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            prefixIcon: const Icon(Icons.attach_money),
-          ),
-          const SizedBox(height: 16),
-          AppTextField(
-            label: 'Icon',
-            hint: 'Emoji',
-            onChanged: (v) => setState(() => _selectedIcon = v),
-            controller: TextEditingController(text: _selectedIcon),
-          ),
-          const SizedBox(height: 16),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.date_range),
-            title: Text(_deadline == null
-                ? 'Target Date (Optional)'
-                : 'Target Date: ${_deadline!.day}/${_deadline!.month}/${_deadline!.year}'),
-            onTap: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: DateTime.now().add(const Duration(days: 30)),
-                firstDate: DateTime.now(),
-                lastDate: DateTime(2050),
-              );
-              if (picked != null) setState(() => _deadline = picked);
-            },
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        AppButton(text: 'Create', isLoading: _isLoading, onPressed: _save),
-      ],
-    );
-  }
-
-  Future<void> _save() async {
-    if (_titleController.text.isEmpty || _targetController.text.isEmpty) return;
-    setState(() => _isLoading = true);
-    try {
-      final client = ref.read(dioClientProvider);
-      await client.post(ApiConstants.goals, data: {
-        'title': _titleController.text,
-        'targetAmount': double.parse(_targetController.text),
-        'icon': _selectedIcon,
-        'currency': 'USD',
-        if (_deadline != null) 'deadline': _deadline!.toIso8601String(),
-      });
-      if (mounted) Navigator.pop(context, true);
-    } catch (_) {
-      setState(() => _isLoading = false);
-    }
   }
 }
 
