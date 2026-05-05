@@ -4,7 +4,9 @@ import * as aiChatService from './ai-chat.service';
 export async function sendMessage(req: Request, res: Response, next: NextFunction) {
   try {
     const { message, sessionId } = req.body;
-    const result = await aiChatService.processMessage(req.user!.id, message, sessionId);
+    const file = req.file;
+    console.log(message, sessionId, file);
+    const result = await aiChatService.processMessage(req.user!.id, message, sessionId, file);
     res.json({ data: result });
   } catch (error) {
     next(error);

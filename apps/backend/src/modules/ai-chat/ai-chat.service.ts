@@ -2,6 +2,9 @@ import { prisma } from '../../config/database';
 import { callGemini } from '../../config/gemini';
 import { AppError } from '../../middleware/error.middleware';
 import * as transactionsService from '../transactions/transactions.service';
+import * as categoriesService from '../categories/categories.service';
+import * as budgetsService from '../budgets/budgets.service';
+import * as goalsService from '../goals/goals.service';
 
 async function buildSystemPrompt(userId: string): Promise<string> {
   const now = new Date();
@@ -63,9 +66,15 @@ async function buildSystemPrompt(userId: string): Promise<string> {
   }
 
   return `
-You are FinanceAI, a personal financial advisor assistant inside a finance app.
-You have access to the user's real financial data below. Use it to give accurate,
-personalized, and actionable advice. Be concise, warm, and clear.
+You are an expert financial advisor AI assistant for the "Finance Manager" app.
+Your goal is to help users manage their money, track expenses, set budgets, and achieve savings goals.
+You have access to the user's real financial data below. Use it to give accurate, personalized, and actionable advice. Be concise, warm, and clear.
+
+You can now SEE images (like receipts or bills) and HEAR voice messages.
+- If the user sends a receipt, automatically extract the amount, category, and items, and suggest adding it as a transaction using the ADD_TRANSACTION action.
+- If the user sends a voice message, respond to it as if they had typed it.
+
+You can perform actions by returning a JSON object.
 
 USER PROFILE:
 - Name: ${user.name}
@@ -90,26 +99,64 @@ ${goals.map((g) => `- ${g.title}: ${g.savedAmount}/${g.targetAmount} ${g.currenc
 BUDGET STATUS:
 ${budgetStatus.map((b) => `- ${b.category}: spent ${b.spent}/${b.limit} ${user.currency} (${b.usagePercent}% used)`).join('\n')}
 
-CAPABILITIES:
 You can help the user:
 1. Understand their spending patterns
-2. Give saving tips based on their actual data
+2. Give saving tips based on your data
 3. Answer financial questions
-4. Log transactions via natural language (respond with JSON action)
-5. Warn about overspending in specific categories
+4. Log transactions (expense/income) via natural language
+5. Add new categories, set budgets, and create financial goals
 
 NATURAL LANGUAGE COMMANDS:
-If the user says something like "add $50 food expense" or "I spent 20 on coffee",
-respond in this exact JSON format ONLY (no extra text):
+For specific actions, respond in this exact JSON format ONLY (no extra text). 
+Generate sensible defaults for icons and colors if not provided (use emojis for icons).
+
+1. ADD_TRANSACTION (expense/income):
 {
   "action": "ADD_TRANSACTION",
   "data": {
-    "type": "EXPENSE",
+    "type": "EXPENSE", // or "INCOME"
     "amount": 50,
     "currency": "${user.currency}",
     "category": "Food & Dining",
-    "title": "Food expense",
+    "title": "Lunch at cafe",
     "date": "${new Date().toISOString()}"
+  }
+}
+
+2. ADD_CATEGORY:
+{
+  "action": "ADD_CATEGORY",
+  "data": {
+    "name": "Gym",
+    "icon": "🏋️",
+    "color": "#4CAF50",
+    "type": "EXPENSE" // or "INCOME"
+  }
+}
+
+3. ADD_BUDGET:
+{
+  "action": "ADD_BUDGET",
+  "data": {
+    "category": "Food & Dining",
+    "amount": 500,
+    "currency": "${user.currency}",
+    "month": ${now.getMonth() + 1},
+    "year": ${now.getFullYear()}
+  }
+}
+
+4. ADD_GOAL:
+{
+  "action": "ADD_GOAL",
+  "data": {
+    "title": "Buy a New Car",
+    "targetAmount": 20000,
+    "currency": "${user.currency}",
+    "deadline": "${new Date(now.getFullYear(), now.getMonth() + 12, now.getDate()).toISOString()}",
+    "description": "Saving for a Tesla",
+    "icon": "🚗",
+    "color": "#2196F3"
   }
 }
 
@@ -117,7 +164,7 @@ For all other messages, respond normally in plain text.
 `;
 }
 
-export async function processMessage(userId: string, message: string, sessionId?: string | null) {
+export async function processMessage(userId: string, message: string, sessionId?: string | null, file?: any) {
   // Get or create session
   let chatSessionId = sessionId;
 
@@ -148,40 +195,101 @@ export async function processMessage(userId: string, message: string, sessionId?
 
   const systemPrompt = await buildSystemPrompt(userId);
   const fullPrompt = historyPrompt ? `${systemPrompt}\n${historyPrompt}` : systemPrompt;
-  const responseText = await callGemini(fullPrompt, message);
+  const responseText = await callGemini(fullPrompt, message, file);
 
-  // Detect transaction action
+  // Detect and process actions
   let actionResult = null;
   let displayMessage = responseText;
 
-  try {
-    const parsed = JSON.parse(responseText);
-    if (parsed.action === 'ADD_TRANSACTION') {
-      // Find category by name
-      const category = await prisma.category.findFirst({
-        where: {
-          name: { contains: parsed.data.category, mode: 'insensitive' },
-          OR: [{ isDefault: true }, { userId }],
-        },
-      });
+  // Function to extract JSON from text (in case AI adds filler)
+  const extractJson = (text: string) => {
+    try {
+      return JSON.parse(text);
+    } catch {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          return JSON.parse(jsonMatch[0]);
+        } catch {
+          return null;
+        }
+      }
+      return null;
+    }
+  };
 
-      if (category) {
-        actionResult = await transactionsService.createTransaction(userId, {
-          categoryId: category.id,
-          type: parsed.data.type,
-          amount: parsed.data.amount,
-          currency: parsed.data.currency,
-          title: parsed.data.title,
-          date: new Date(parsed.data.date),
+  const parsed = extractJson(responseText);
+  
+  if (parsed && parsed.action) {
+    try {
+      if (parsed.action === 'ADD_TRANSACTION') {
+        const category = await prisma.category.findFirst({
+          where: {
+            name: { contains: parsed.data.category, mode: 'insensitive' },
+            OR: [{ isDefault: true }, { userId }],
+          },
         });
 
-        displayMessage = `✅ Got it! I've added your ${parsed.data.category} ${parsed.data.type.toLowerCase()} of ${parsed.data.amount} ${parsed.data.currency}.`;
-      } else {
-        displayMessage = `I understood you want to add a transaction, but I couldn't find the category "${parsed.data.category}". Please try with a valid category name.`;
+        if (category) {
+          actionResult = await transactionsService.createTransaction(userId, {
+            categoryId: category.id,
+            type: (parsed.data.type || 'EXPENSE').toUpperCase() as any,
+            amount: Number(parsed.data.amount),
+            currency: parsed.data.currency,
+            title: parsed.data.title,
+            date: parsed.data.date ? new Date(parsed.data.date) : new Date(),
+          });
+          displayMessage = `✅ Got it! I've added your ${parsed.data.category} ${parsed.data.type.toLowerCase()} of ${parsed.data.amount} ${parsed.data.currency}.`;
+        } else {
+          displayMessage = `I understood you want to add a transaction, but I couldn't find the category "${parsed.data.category}". Please try with a valid category name.`;
+        }
+      } 
+      else if (parsed.action === 'ADD_CATEGORY') {
+        actionResult = await categoriesService.createCategory(userId, {
+          name: parsed.data.name,
+          icon: parsed.data.icon || '📁',
+          color: parsed.data.color || '#9E9E9E',
+          type: (parsed.data.type || 'EXPENSE').toUpperCase() as any,
+        });
+        displayMessage = `✅ Success! I've created the new category "${parsed.data.name}" for your ${parsed.data.type.toLowerCase()}s.`;
       }
+      else if (parsed.action === 'ADD_BUDGET') {
+        const category = await prisma.category.findFirst({
+          where: {
+            name: { contains: parsed.data.category, mode: 'insensitive' },
+            OR: [{ isDefault: true }, { userId }],
+          },
+        });
+
+        if (category) {
+          actionResult = await budgetsService.createBudget(userId, {
+            categoryId: category.id,
+            amount: Number(parsed.data.amount),
+            currency: parsed.data.currency,
+            month: Number(parsed.data.month),
+            year: Number(parsed.data.year),
+          });
+          displayMessage = `✅ Budget set! Your limit for ${category.name} in ${new Date(Number(parsed.data.year), Number(parsed.data.month) - 1).toLocaleString('default', { month: 'long' })} is now ${parsed.data.amount} ${parsed.data.currency}.`;
+        } else {
+          displayMessage = `I tried to set a budget, but I couldn't find the category "${parsed.data.category}".`;
+        }
+      }
+      else if (parsed.action === 'ADD_GOAL') {
+        actionResult = await goalsService.createGoal(userId, {
+          title: parsed.data.title,
+          targetAmount: Number(parsed.data.targetAmount),
+          currency: parsed.data.currency,
+          deadline: parsed.data.deadline ? new Date(parsed.data.deadline) : null,
+          description: parsed.data.description,
+          icon: parsed.data.icon || '🎯',
+          color: parsed.data.color || '#2196F3',
+        });
+        displayMessage = `✅ Goal created! You're now tracking your goal: "${parsed.data.title}" with a target of ${parsed.data.targetAmount} ${parsed.data.currency}. Good luck!`;
+      }
+    } catch (e) {
+      console.error('Error executing AI action:', e);
+      // Fallback to response text if action fails
     }
-  } catch {
-    // Normal text response, not a JSON command
   }
 
   // Save messages
@@ -192,10 +300,13 @@ export async function processMessage(userId: string, message: string, sessionId?
     ],
   });
 
+  // Use the already parsed action type if available
+  const actionType = (parsed && parsed.action) ? parsed.action : 'UNKNOWN';
+
   return {
     message: displayMessage,
     sessionId: chatSessionId,
-    action: actionResult ? { type: 'ADD_TRANSACTION', transaction: actionResult } : null,
+    action: actionResult ? { type: actionType, data: actionResult } : null,
   };
 }
 
