@@ -7,7 +7,6 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/network/dio_client.dart';
 import '../../../../core/network/network_providers.dart';
 import '../../../../core/constants/api_constants.dart';
 

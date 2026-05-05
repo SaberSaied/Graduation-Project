@@ -121,7 +121,7 @@ class _AccountDetailsPageState extends ConsumerState<AccountDetailsPage> {
                 const SizedBox(height: 16),
 
                 DropdownButtonFormField<String>(
-                  value: _selectedCurrency,
+                  initialValue: _selectedCurrency,
                   decoration: const InputDecoration(
                     labelText: 'Preferred Currency',
                     prefixIcon: Icon(Icons.payments_outlined),
@@ -201,7 +201,7 @@ class _AccountDetailsPageState extends ConsumerState<AccountDetailsPage> {
       await client.patch(ApiConstants.userMe, data: {
         'name': _nameController.text,
         'currency': _selectedCurrency,
-        if (base64Image != null) 'image': base64Image,
+        'image': base64Image,
       });
       
       ref.invalidate(userProfileProvider);

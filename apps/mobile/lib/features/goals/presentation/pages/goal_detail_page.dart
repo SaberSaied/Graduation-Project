@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/utils/currency_formatter.dart';
-import '../../../../core/storage/secure_storage.dart';
-import '../../../../core/network/dio_client.dart';
 import '../../../../core/network/network_providers.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
@@ -36,7 +34,7 @@ class GoalDetailPage extends ConsumerWidget {
         actions: [
           detailAsync.when(
             loading: () => const SizedBox(),
-            error: (_, __) => const SizedBox(),
+            error: (err, stack) => const SizedBox(),
             data: (data) => Row(
               children: [
                 IconButton(

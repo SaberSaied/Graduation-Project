@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/constants/app_colors.dart';
-import '../../../../core/network/dio_client.dart';
 import '../../../../core/network/network_providers.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../shared/widgets/app_button.dart';
@@ -71,7 +69,7 @@ class _GoalDialogState extends ConsumerState<GoalDialog> {
   }
 
   String _colorToHex(Color color) {
-    return '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
+    return '#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
   }
 
   @override
@@ -118,7 +116,7 @@ class _GoalDialogState extends ConsumerState<GoalDialog> {
                 if (isEdit)
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _selectedStatus,
+                      initialValue: _selectedStatus,
                       decoration: const InputDecoration(
                         labelText: 'Status',
                         border: OutlineInputBorder(),
@@ -166,7 +164,7 @@ class _GoalDialogState extends ConsumerState<GoalDialog> {
               spacing: 8,
               runSpacing: 8,
               children: _availableColors.map((color) {
-                final isSelected = _selectedColor.value == color.value;
+                final isSelected = _selectedColor.toARGB32() == color.toARGB32();
                 return GestureDetector(
                   onTap: () => setState(() => _selectedColor = color),
                   child: Container(
@@ -179,7 +177,7 @@ class _GoalDialogState extends ConsumerState<GoalDialog> {
                         ? Border.all(color: Colors.white, width: 3) 
                         : null,
                       boxShadow: isSelected 
-                        ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 8, spreadRadius: 2)] 
+                        ? [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 8, spreadRadius: 2)] 
                         : null,
                     ),
                     child: isSelected 

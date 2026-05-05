@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/utils/currency_formatter.dart';
-import '../../../../core/network/dio_client.dart';
 import '../../../../core/network/network_providers.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
@@ -228,11 +227,11 @@ class _BudgetDialogState extends ConsumerState<_BudgetDialog> {
         children: [
           categoriesAsync.when(
             loading: () => const CircularProgressIndicator(),
-            error: (_, __) => const Text('Error loading categories'),
+            error: (err, stack) => const Text('Error loading categories'),
             data: (categories) {
               final expenseCategories = categories.where((c) => c.type == 'EXPENSE').toList();
               return DropdownButtonFormField<String>(
-                value: _selectedCategoryId,
+                initialValue: _selectedCategoryId,
                 decoration: const InputDecoration(labelText: 'Category'),
                 disabledHint: widget.budget != null ? Text(widget.budget!.categoryName ?? '') : null,
                 items: expenseCategories.map((c) => DropdownMenuItem(value: c.id, child: Text('${c.icon} ${c.name}'))).toList(),

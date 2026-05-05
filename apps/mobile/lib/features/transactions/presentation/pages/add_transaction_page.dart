@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
-import '../../../../core/network/dio_client.dart';
 import '../../../../core/network/network_providers.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../core/constants/api_constants.dart';
@@ -112,9 +111,11 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
         _analysisResult = response.data['data']['analysis'];
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to analyze impact.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to analyze impact.')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isAnalyzing = false);
     }
@@ -307,13 +308,13 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
               const SizedBox(height: 8),
               goalsAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, __) => const Text('Could not load goals'),
+                error: (err, stack) => const Text('Could not load goals'),
                 data: (goals) {
                   if (goals.isEmpty) {
                     return const Text('No active goals available.');
                   }
                   return DropdownButtonFormField<String>(
-                    value: _goalId,
+                    initialValue: _goalId,
                     hint: const Text('Select a goal...'),
                     decoration: InputDecoration(
                       filled: true,

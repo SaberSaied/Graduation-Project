@@ -1,6 +1,4 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
-import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
@@ -20,10 +18,10 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: const String.fromEnvironment('FIREBASE_API_KEY', defaultValue: '[GCP_API_KEY]'),
-    appId: const String.fromEnvironment('FIREBASE_APP_ID', defaultValue: '1:452414717624:android:399c7eeb05b00a86ad7e4d'),
-    messagingSenderId: const String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID', defaultValue: '452414717624'),
-    projectId: const String.fromEnvironment('FIREBASE_PROJECT_ID', defaultValue: 'finance-app-56182'),
-    storageBucket: const String.fromEnvironment('FIREBASE_STORAGE_BUCKET', defaultValue: 'finance-app-56182.firebasestorage.app'),
+    apiKey: String.fromEnvironment('FIREBASE_API_KEY', defaultValue: '[GCP_API_KEY]'),
+    appId: String.fromEnvironment('FIREBASE_APP_ID', defaultValue: '1:452414717624:android:399c7eeb05b00a86ad7e4d'),
+    messagingSenderId: String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID', defaultValue: '452414717624'),
+    projectId: String.fromEnvironment('FIREBASE_PROJECT_ID', defaultValue: 'finance-app-56182'),
+    storageBucket: String.fromEnvironment('FIREBASE_STORAGE_BUCKET', defaultValue: 'finance-app-56182.firebasestorage.app'),
   );
 }

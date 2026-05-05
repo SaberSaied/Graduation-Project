@@ -15,16 +15,24 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Initialize Firebase using hardcoded options so it runs on all platforms without native google-services
-  if (!Platform.isLinux) {
-    await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    // Initialize Firebase using hardcoded options so it runs on all platforms without native google-services
+    if (!Platform.isLinux && !Platform.isWindows) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
+  } catch (e) {
+    debugPrint('Firebase initialization failed: $e');
+    // Continue running the app even if Firebase fails
   }
-  
 
-  // Initialize Hive for offline caching
-  await LocalCache.init();
+  try {
+    // Initialize Hive for offline caching
+    await LocalCache.init();
+  } catch (e) {
+    debugPrint('LocalCache initialization failed: $e');
+  }
 
   runApp(
     const ProviderScope(

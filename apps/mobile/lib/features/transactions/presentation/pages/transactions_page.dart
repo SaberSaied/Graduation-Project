@@ -5,7 +5,6 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_formatter.dart';
-import '../../../../core/network/dio_client.dart';
 import '../../../../core/network/network_providers.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
@@ -36,7 +35,6 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final txAsync = ref.watch(transactionsProvider((
       type: _filter == 'ALL' ? null : _filter,
       page: 1,
@@ -212,10 +210,12 @@ class _TransactionListViewState extends ConsumerState<_TransactionListView> {
           onDismissed: (_) async {
             final id = tx['id'];
             setState(() => _items.removeAt(index));
+            final messenger = ScaffoldMessenger.of(context);
             try {
               final client = ref.read(dioClientProvider);
               await client.delete('${ApiConstants.transactions}/$id');
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Transaction deleted')));
+              if (!mounted) return;
+              messenger.showSnackBar(const SnackBar(content: Text('Transaction deleted')));
             } catch (e) {
               // Revert on error or show error
               widget.onRefresh(); // Refresh the whole list if delete failed
