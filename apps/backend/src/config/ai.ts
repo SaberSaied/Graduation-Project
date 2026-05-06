@@ -98,6 +98,36 @@ async function callOpenRouter(
   return data.choices[0].message.content;
 }
 
+async function callGroq(
+  systemPrompt: string,
+  userMessage: string,
+): Promise<string> {
+  if (!env.GROQ_API_KEY) throw new Error('Groq API key not configured');
+
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${env.GROQ_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: env.GROQ_MODEL,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`Groq API error: ${JSON.stringify(error)}`);
+  }
+
+  const data: any = await response.json();
+  return data.choices[0].message.content;
+}
+
 export async function callAI(
   systemPrompt: string,
   userMessage: string,
@@ -113,15 +143,25 @@ export async function callAI(
     console.warn('Gemini failed or rate limited, falling back to OpenRouter:', error.message);
   }
 
-  // Fallback to OpenRouter
+  // Fallback 1: OpenRouter
   try {
     if (env.OPENROUTER_API_KEY) {
-      console.log('--- Calling OpenRouter (Fallback) ---');
+      console.log('--- Calling OpenRouter (Fallback 1) ---');
       return await callOpenRouter(systemPrompt, userMessage, file);
     }
   } catch (error: any) {
-    console.error('OpenRouter fallback also failed:', error.message);
+    console.warn('OpenRouter fallback failed, falling back to Groq:', error.message);
   }
 
-  return 'I apologize, but I am currently experiencing technical difficulties. My primary and backup AI systems are both unavailable. Please try again in a moment.';
+  // Fallback 2: Groq (Note: Groq implementation here only supports text)
+  try {
+    if (env.GROQ_API_KEY) {
+      console.log('--- Calling Groq (Fallback 2) ---');
+      return await callGroq(systemPrompt, userMessage);
+    }
+  } catch (error: any) {
+    console.error('Groq fallback also failed:', error.message);
+  }
+
+  return 'I apologize, but I am currently experiencing technical difficulties. My primary and backup AI systems (Gemini, OpenRouter, and Groq) are all unavailable. Please try again in a moment.';
 }
