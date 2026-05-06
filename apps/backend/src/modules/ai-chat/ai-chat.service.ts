@@ -1,5 +1,5 @@
 import { prisma } from '../../config/database';
-import { callGemini } from '../../config/gemini';
+import { callAI } from '../../config/ai';
 import { AppError } from '../../middleware/error.middleware';
 import * as transactionsService from '../transactions/transactions.service';
 import * as categoriesService from '../categories/categories.service';
@@ -195,7 +195,7 @@ export async function processMessage(userId: string, message: string, sessionId?
 
   const systemPrompt = await buildSystemPrompt(userId);
   const fullPrompt = historyPrompt ? `${systemPrompt}\n${historyPrompt}` : systemPrompt;
-  const responseText = await callGemini(fullPrompt, message, file);
+  const responseText = await callAI(fullPrompt, message, file);
 
   // Detect and process actions
   let actionResult = null;
@@ -395,6 +395,6 @@ ${goalStatus}
 Provide a short, friendly, and direct 2-sentence analysis of how this transaction impacts their budget and future goal progress. Do NOT output JSON, just plain text.
   `;
 
-  const responseText = await callGemini(systemPrompt, 'Analyze this transaction impact.');
+  const responseText = await callAI(systemPrompt, 'Analyze this transaction impact.');
   return { analysis: responseText };
 }

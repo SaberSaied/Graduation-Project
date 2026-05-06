@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../../config/database';
+import { createDefaultCategories } from '../categories/categories.service';
 import { hashPassword, comparePassword, generateToken } from '../../utils/auth.utils';
 import { AppError } from '../../middleware/error.middleware';
 import { OAuth2Client } from 'google-auth-library';
@@ -42,6 +43,9 @@ export const signUp = async (req: Request, res: Response, next: NextFunction) =>
         createdAt: true,
       },
     });
+
+    // Create default categories for the new user
+    await createDefaultCategories(user.id);
 
     // Generate JWT
     const token = generateToken(user.id);
@@ -191,6 +195,9 @@ export const googleSignIn = async (req: Request, res: Response, next: NextFuncti
           emailVerified: email_verified || false,
         },
       });
+
+      // Create default categories for the new user
+      await createDefaultCategories(user.id);
     }
 
     // Generate JWT

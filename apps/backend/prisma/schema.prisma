@@ -19,6 +19,7 @@ model User {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   budgets       Budget[]
+  categories    Category[]
   chatSessions  ChatSession[]
   goals         Goal[]
   notifications Notification[]
@@ -35,9 +36,12 @@ model Category {
   type         CategoryType
   isDefault    Boolean       @default(false)
   userId       String?
+  createdAt    DateTime      @default(now())
   budgets      Budget[]
   transactions Transaction[]
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, type])
   @@map("categories")
 }
 

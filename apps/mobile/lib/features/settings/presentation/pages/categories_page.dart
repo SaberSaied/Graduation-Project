@@ -2,70 +2,52 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../categories/presentation/providers/categories_provider.dart';
+import '../../../categories/domain/models/category_model.dart';
 import '../../../../core/network/network_providers.dart';
 import '../../../../core/constants/api_constants.dart';
-import '../../../../core/models/models.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
-import '../../../../shared/widgets/error_widget.dart';
 import '../../../../shared/widgets/empty_state_widget.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
-
-final categoriesListProvider = FutureProvider.autoDispose<List<Category>>((ref) async {
-  final client = ref.watch(dioClientProvider);
-  final response = await client.get(ApiConstants.categories);
-  final List data = response.data['data'] ?? [];
-  return data.map((json) => Category.fromJson(json)).toList();
-});
 
 class CategoriesPage extends ConsumerWidget {
   const CategoriesPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final categoriesAsync = ref.watch(categoriesListProvider);
+    final categoriesState = ref.watch(categoriesProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Manage Categories'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline),
-            onPressed: () => _showCategoryDialog(context, ref),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Manage Categories'),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Expense'),
+              Tab(text: 'Income'),
+            ],
           ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async => ref.invalidate(categoriesListProvider),
-        child: categoriesAsync.when(
-          loading: () => const LoadingIndicator(message: 'Loading categories...'),
-          error: (e, _) => AppErrorWidget(
-            message: 'Failed to load categories',
-            onRetry: () => ref.invalidate(categoriesListProvider),
-          ),
-          data: (categories) {
-            if (categories.isEmpty) {
-              return const EmptyStateWidget(
-                icon: Icons.category_outlined,
-                title: 'No categories',
-                subtitle: 'Create your first category to start tracking',
-              );
-            }
-
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: categories.length,
-              itemBuilder: (context, index) {
-                final category = categories[index];
-                return _CategoryTile(category: category);
-              },
-            );
-          },
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline),
+              onPressed: () => _showCategoryDialog(context, ref),
+            ),
+          ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showCategoryDialog(context, ref),
-        child: const Icon(Icons.add),
+        body: categoriesState.isLoading && categoriesState.expenseCategories.isEmpty && categoriesState.incomeCategories.isEmpty
+            ? const LoadingIndicator(message: 'Loading categories...')
+            : TabBarView(
+                children: [
+                  _CategoryList(categories: categoriesState.expenseCategories),
+                  _CategoryList(categories: categoriesState.incomeCategories),
+                ],
+              ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => _showCategoryDialog(context, ref),
+          child: const Icon(Icons.add),
+        ),
       ),
     );
   }
@@ -75,8 +57,33 @@ class CategoriesPage extends ConsumerWidget {
       context: context,
       builder: (ctx) => _CategoryDialog(category: category),
     ).then((value) {
-      if (value == true) ref.invalidate(categoriesListProvider);
+      if (value == true) ref.read(categoriesProvider.notifier).loadCategories();
     });
+  }
+}
+
+class _CategoryList extends StatelessWidget {
+  final List<Category> categories;
+  const _CategoryList({required this.categories});
+
+  @override
+  Widget build(BuildContext context) {
+    if (categories.isEmpty) {
+      return const EmptyStateWidget(
+        icon: Icons.category_outlined,
+        title: 'No categories',
+        subtitle: 'Create your first category to start tracking',
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: categories.length,
+      itemBuilder: (context, index) {
+        final category = categories[index];
+        return _CategoryTile(category: category);
+      },
+    );
   }
 }
 
@@ -86,13 +93,7 @@ class _CategoryTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    
-    // Parse color hex string safely
-    Color catColor = AppColors.primaryLight;
-    try {
-      final hex = category.color.replaceAll('#', '');
-      catColor = Color(int.parse('FF$hex', radix: 16));
-    } catch (_) {}
+    final catColor = category.colorValue;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -107,7 +108,7 @@ class _CategoryTile extends ConsumerWidget {
           child: Text(category.icon, style: const TextStyle(fontSize: 24)),
         ),
         title: Text(category.name, style: AppTextStyles.titleMedium),
-        subtitle: Text(category.type, style: AppTextStyles.bodySmall),
+        subtitle: Text(category.type == CategoryType.INCOME ? 'Income' : 'Expense', style: AppTextStyles.bodySmall),
         trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -118,15 +119,14 @@ class _CategoryTile extends ConsumerWidget {
                       context: context,
                       builder: (ctx) => _CategoryDialog(category: category),
                     ).then((value) {
-                      if (value == true) ref.invalidate(categoriesListProvider);
+                      if (value == true) ref.read(categoriesProvider.notifier).loadCategories();
                     });
                   },
                 ),
-                if (!category.isDefault)
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, color: AppColors.errorLight, size: 20),
-                    onPressed: () => _confirmDelete(context, ref),
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: AppColors.errorLight, size: 20),
+                  onPressed: () => _confirmDelete(context, ref),
+                ),
               ],
             ),
       ),
@@ -144,11 +144,9 @@ class _CategoryTile extends ConsumerWidget {
           TextButton(
             onPressed: () async {
               try {
-                final client = ref.read(dioClientProvider);
-                await client.delete(ApiConstants.category(category.id));
+                await ref.read(categoriesProvider.notifier).deleteCategory(category.id);
                 if (ctx.mounted) Navigator.pop(ctx);
-                ref.invalidate(categoriesListProvider);
-              } catch (_) {}
+              } catch (err) {}
             },
             child: const Text('Delete', style: TextStyle(color: AppColors.errorLight)),
           ),
@@ -187,7 +185,7 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
       _nameController.text = widget.category!.name;
       _selectedIcon = widget.category!.icon;
       _selectedColor = widget.category!.color;
-      _selectedType = widget.category!.type;
+      _selectedType = widget.category!.type == CategoryType.INCOME ? 'INCOME' : 'EXPENSE';
     }
   }
 
@@ -283,10 +281,8 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
   }
 
   Future<void> _save() async {
-    if (_nameController.text.isEmpty) return;
     setState(() => _isLoading = true);
     try {
-      final client = ref.read(dioClientProvider);
       final data = {
         'name': _nameController.text,
         'icon': _selectedIcon,
@@ -295,8 +291,14 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
       };
 
       if (widget.category == null) {
-        await client.post(ApiConstants.categories, data: data);
+        await ref.read(categoriesProvider.notifier).addCategory(
+              _nameController.text,
+              _selectedIcon,
+              _selectedColor,
+              _selectedType == 'INCOME' ? CategoryType.INCOME : CategoryType.EXPENSE,
+            );
       } else {
+        final client = ref.read(dioClientProvider);
         await client.patch(ApiConstants.category(widget.category!.id), data: data);
       }
       

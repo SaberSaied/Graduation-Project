@@ -53,7 +53,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         },
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final data = response.data;
         String? token = data['token'] ?? data['session']?['token'];
 

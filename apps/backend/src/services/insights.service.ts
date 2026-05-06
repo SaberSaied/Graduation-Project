@@ -1,5 +1,5 @@
 import { prisma } from '../config/database';
-import { callGemini } from '../config/gemini';
+import { callAI } from '../config/ai';
 
 export interface Insight {
   type: 'warning' | 'tip' | 'achievement';
@@ -100,7 +100,7 @@ GUIDELINES:
 4. If they have no data, give general smart financial advice.
 `;
 
-    const aiResponse = await callGemini(systemPrompt, 'Generate my monthly financial insights.');
+    const aiResponse = await callAI(systemPrompt, 'Generate my monthly financial insights.');
     
     // Attempt to parse JSON
     try {

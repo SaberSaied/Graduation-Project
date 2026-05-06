@@ -11,6 +11,8 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
+  OPENROUTER_API_KEY: z.string().optional(),
+  OPENROUTER_MODEL: z.string().default('qwen/qwen2.5-vl-7b-instruct:free'),
   EXCHANGE_RATE_API_KEY: z.string().optional(),
 });
 

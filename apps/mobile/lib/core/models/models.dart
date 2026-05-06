@@ -1,46 +1,4 @@
-class Category {
-  final String id;
-  final String name;
-  final String icon;
-  final String color;
-  final String type;
-  final bool isDefault;
-  final String? userId;
-
-  Category({
-    required this.id,
-    required this.name,
-    required this.icon,
-    required this.color,
-    required this.type,
-    this.isDefault = false,
-    this.userId,
-  });
-
-  factory Category.fromJson(Map<String, dynamic> json) {
-    return Category(
-      id: json['id'],
-      name: json['name'],
-      icon: json['icon'],
-      color: json['color'],
-      type: json['type'],
-      isDefault: json['isDefault'] ?? false,
-      userId: json['userId'],
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'icon': icon,
-      'color': color,
-      'type': type,
-      'isDefault': isDefault,
-      'userId': userId,
-    };
-  }
-}
+export '../../features/categories/domain/models/category_model.dart';
 
 class Budget {
   final String id;

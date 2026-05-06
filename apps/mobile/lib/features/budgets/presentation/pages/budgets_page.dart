@@ -11,7 +11,7 @@ import '../../../../shared/widgets/empty_state_widget.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../core/models/models.dart';
-import '../../../settings/presentation/pages/categories_page.dart';
+import '../../../categories/presentation/providers/categories_provider.dart';
 
 final budgetsProvider = FutureProvider.autoDispose<List<Budget>>((ref) async {
   final client = ref.watch(dioClientProvider);
@@ -218,27 +218,27 @@ class _BudgetDialogState extends ConsumerState<_BudgetDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final categoriesAsync = ref.watch(categoriesListProvider);
+    final categoriesState = ref.watch(categoriesProvider);
 
     return AlertDialog(
       title: Text(widget.budget == null ? 'Set Budget' : 'Edit Budget'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          categoriesAsync.when(
-            loading: () => const CircularProgressIndicator(),
-            error: (err, stack) => const Text('Error loading categories'),
-            data: (categories) {
-              final expenseCategories = categories.where((c) => c.type == 'EXPENSE').toList();
-              return DropdownButtonFormField<String>(
-                initialValue: _selectedCategoryId,
-                decoration: const InputDecoration(labelText: 'Category'),
-                disabledHint: widget.budget != null ? Text(widget.budget!.categoryName ?? '') : null,
-                items: expenseCategories.map((c) => DropdownMenuItem(value: c.id, child: Text('${c.icon} ${c.name}'))).toList(),
-                onChanged: widget.budget != null ? null : (v) => setState(() => _selectedCategoryId = v),
-              );
-            },
-          ),
+          if (categoriesState.isLoading && categoriesState.expenseCategories.isEmpty)
+            const CircularProgressIndicator()
+          else if (categoriesState.error != null)
+            const Text('Error loading categories')
+          else
+            DropdownButtonFormField<String>(
+              initialValue: _selectedCategoryId,
+              decoration: const InputDecoration(labelText: 'Category'),
+              disabledHint: widget.budget != null ? Text(widget.budget!.categoryName ?? '') : null,
+              items: categoriesState.expenseCategories
+                  .map((c) => DropdownMenuItem(value: c.id, child: Text('${c.icon} ${c.name}')))
+                  .toList(),
+              onChanged: widget.budget != null ? null : (v) => setState(() => _selectedCategoryId = v),
+            ),
           const SizedBox(height: 16),
           AppTextField(
             controller: _amountController,

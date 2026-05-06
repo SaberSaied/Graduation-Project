@@ -256,6 +256,16 @@ class _TransactionTile extends StatelessWidget {
     final category = tx['category'] as Map<String, dynamic>?;
     final isIncome = type == 'INCOME';
 
+    final Color catColor = (() {
+      try {
+        final hex = category?['color']?.replaceAll('#', '') ?? '';
+        if (hex.isEmpty) return isIncome ? AppColors.income : AppColors.expense;
+        return Color(int.parse('FF$hex', radix: 16));
+      } catch (_) {
+        return isIncome ? AppColors.income : AppColors.expense;
+      }
+    })();
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
@@ -263,7 +273,7 @@ class _TransactionTile extends StatelessWidget {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: (isIncome ? AppColors.income : AppColors.expense).withValues(alpha: 0.1),
+            color: catColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Center(

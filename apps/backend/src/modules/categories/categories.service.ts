@@ -1,24 +1,53 @@
 import { prisma } from '../../config/database';
 import { AppError } from '../../middleware/error.middleware';
+import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES } from './categories.constants';
 
-export async function getCategories(userId: string) {
-  const allCategories = await prisma.category.findMany({
+export async function createDefaultCategories(userId: string) {
+  // Check if user already has categories to prevent duplicates
+  const existingCount = await prisma.category.count({ where: { userId } });
+  if (existingCount > 0) return;
+
+  const expenseData = DEFAULT_EXPENSE_CATEGORIES.map(cat => ({
+    ...cat,
+    type: 'EXPENSE' as const,
+    userId,
+    isDefault: true, // Marking them as default for this user
+  }));
+
+  const incomeData = DEFAULT_INCOME_CATEGORIES.map(cat => ({
+    ...cat,
+    type: 'INCOME' as const,
+    userId,
+    isDefault: true,
+  }));
+
+  return prisma.$transaction(
+    [...expenseData, ...incomeData].map(data =>
+      prisma.category.create({ data })
+    )
+  );
+}
+
+export async function getCategories(userId: string, filters?: { type?: 'INCOME' | 'EXPENSE', search?: string }) {
+  const categories = await prisma.category.findMany({
     where: {
-      OR: [
-        { isDefault: true },
-        { userId },
+      userId,
+      AND: [
+        filters?.type ? { type: filters.type } : {},
+        filters?.search ? { name: { contains: filters.search, mode: 'insensitive' } } : {},
       ],
     },
-    orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
+    orderBy: { name: 'asc' },
   });
 
-  // Filter out default categories if the user has a custom one with the same name and type
-  const userCats = allCategories.filter(c => c.userId === userId);
-  return allCategories.filter(c => {
-    if (!c.isDefault) return true;
-    const hasCustom = userCats.some(uc => uc.name === c.name && uc.type === c.type);
-    return !hasCustom;
-  });
+  const incomeCategories = categories.filter(c => c.type === 'INCOME');
+  const expenseCategories = categories.filter(c => c.type === 'EXPENSE');
+
+  return {
+    incomeCategories,
+    expenseCategories,
+    all: categories,
+  };
 }
 
 export async function createCategory(userId: string, data: { name: string; icon: string; color: string; type: 'INCOME' | 'EXPENSE' }) {

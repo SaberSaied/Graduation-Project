@@ -224,14 +224,30 @@ class _TransactionListViewState extends ConsumerState<_TransactionListView> {
           child: Card(
             margin: const EdgeInsets.only(bottom: 8),
             child: ListTile(
-              leading: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: (isIncome ? AppColors.income : AppColors.expense).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(child: Text(category?['icon'] ?? '📦', style: const TextStyle(fontSize: 20))),
+              leading: Builder(
+                builder: (context) {
+                  final Color catColor = (() {
+                    try {
+                      final hex = category?['color']?.replaceAll('#', '') ?? '';
+                      if (hex.isEmpty) return isIncome ? AppColors.income : AppColors.expense;
+                      return Color(int.parse('FF$hex', radix: 16));
+                    } catch (_) {
+                      return isIncome ? AppColors.income : AppColors.expense;
+                    }
+                  })();
+
+                  return Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: catColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(category?['icon'] ?? '📦', style: const TextStyle(fontSize: 20)),
+                    ),
+                  );
+                }
               ),
               title: Text(tx['title'] ?? '', style: AppTextStyles.titleMedium),
               subtitle: Text(

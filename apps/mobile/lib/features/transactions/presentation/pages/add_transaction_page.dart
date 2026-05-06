@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/network/network_providers.dart';
@@ -10,12 +11,8 @@ import '../../../../core/constants/api_constants.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../goals/presentation/pages/goals_page.dart';
-
-final categoriesProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
-  final client = ref.watch(dioClientProvider);
-  final response = await client.get(ApiConstants.categories);
-  return List<Map<String, dynamic>>.from(response.data['data'] ?? []);
-});
+import '../../../categories/presentation/providers/categories_provider.dart';
+import '../../../categories/domain/models/category_model.dart';
 
 class AddTransactionPage extends ConsumerStatefulWidget {
   const AddTransactionPage({super.key});
@@ -124,13 +121,11 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final categoriesAsync = ref.watch(categoriesProvider);
+    final categoriesState = ref.watch(categoriesProvider);
 
-    final filteredCategories = categoriesAsync.when(
-      data: (cats) => cats.where((c) => c['type'] == _type).toList(),
-      loading: () => <Map<String, dynamic>>[],
-      error: (error, stackTrace) => <Map<String, dynamic>>[],
-    );
+    final List<Category> filteredCategories = _type == 'INCOME' 
+        ? categoriesState.incomeCategories 
+        : categoriesState.expenseCategories;
 
     final goalsAsync = ref.watch(goalsProvider);
 
@@ -228,48 +223,52 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: filteredCategories.map((cat) {
-                  final isSelected = _categoryId == cat['id'];
-                  return GestureDetector(
-                    onTap: () => setState(() => _categoryId = cat['id']),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? (() {
-                                try {
-                                  return Color(int.parse('0xFF${(cat['color'] as String).replaceAll('#', '')}'));
-                                } catch (_) {
-                                  return AppColors.primaryLight;
-                                }
-                              })()
-                            : (isDark ? AppColors.surfaceDark : AppColors.surfaceLight),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isSelected
-                              ? Colors.transparent
-                              : (isDark ? AppColors.dividerDark : AppColors.dividerLight),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(cat['icon'] ?? '📦', style: const TextStyle(fontSize: 16)),
-                          const SizedBox(width: 6),
-                          Text(
-                            cat['name'] ?? '',
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : null,
-                              fontSize: 13,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                children: [
+                  if (categoriesState.isLoading && filteredCategories.isEmpty)
+                    ...List.generate(6, (index) => _buildSkeletonCategory(isDark))
+                  else if (filteredCategories.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Text('No categories found. Add one to get started!'),
+                    )
+                  else
+                    ...filteredCategories.map((Category cat) {
+                      final isSelected = _categoryId == cat.id;
+                      return GestureDetector(
+                        onTap: () => setState(() => _categoryId = cat.id),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? cat.colorValue
+                                : (isDark ? AppColors.surfaceDark : AppColors.surfaceLight),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected
+                                  ? Colors.transparent
+                                  : (isDark ? AppColors.dividerDark : AppColors.dividerLight),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(cat.icon, style: const TextStyle(fontSize: 16)),
+                              const SizedBox(width: 6),
+                              Text(
+                                cat.name,
+                                style: TextStyle(
+                                  color: isSelected ? Colors.white : null,
+                                  fontSize: 13,
+                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                ],
               ),
               const SizedBox(height: 16),
 
@@ -387,6 +386,28 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonCategory(bool isDark) {
+    return Shimmer.fromColors(
+      baseColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+      highlightColor: isDark ? Colors.grey[700]! : Colors.grey[100]!,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 16, height: 16, color: Colors.white),
+            const SizedBox(width: 6),
+            Container(width: 40, height: 13, color: Colors.white),
+          ],
         ),
       ),
     );

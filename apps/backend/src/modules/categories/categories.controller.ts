@@ -3,7 +3,11 @@ import * as categoriesService from './categories.service';
 
 export async function getCategories(req: Request, res: Response, next: NextFunction) {
   try {
-    const categories = await categoriesService.getCategories(req.user!.id);
+    const { type, search } = req.query;
+    const categories = await categoriesService.getCategories(req.user!.id, {
+      type: type as any,
+      search: search as string,
+    });
     res.json({ data: categories });
   } catch (error) {
     next(error);
