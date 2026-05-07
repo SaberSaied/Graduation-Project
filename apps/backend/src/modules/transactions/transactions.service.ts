@@ -8,27 +8,51 @@ interface TransactionQuery {
   from?: string;
   to?: string;
   categoryId?: string;
+  minAmount?: number;
+  maxAmount?: number;
+  search?: string;
+  sortBy?: 'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc';
   page: number;
   limit: number;
 }
 
 export async function getTransactions(userId: string, query: TransactionQuery): Promise<PaginatedResponse> {
-  const { type, from, to, categoryId, page, limit } = query;
+  const { type, from, to, categoryId, minAmount, maxAmount, search, sortBy, page, limit } = query;
 
   const where: any = { userId };
   if (type) where.type = type;
   if (categoryId) where.categoryId = categoryId;
+  
   if (from || to) {
     where.date = {};
     if (from) where.date.gte = new Date(from);
     if (to) where.date.lte = new Date(to);
   }
 
+  if (minAmount !== undefined || maxAmount !== undefined) {
+    where.amount = {};
+    if (minAmount !== undefined) where.amount.gte = minAmount;
+    if (maxAmount !== undefined) where.amount.lte = maxAmount;
+  }
+
+  if (search) {
+    where.title = { contains: search, mode: 'insensitive' };
+  }
+
+  const orderBy: any = {};
+  switch (sortBy) {
+    case 'date_asc': orderBy.date = 'asc'; break;
+    case 'amount_desc': orderBy.amount = 'desc'; break;
+    case 'amount_asc': orderBy.amount = 'asc'; break;
+    case 'date_desc':
+    default: orderBy.date = 'desc'; break;
+  }
+
   const [transactions, totalCount] = await Promise.all([
     prisma.transaction.findMany({
       where,
       include: { category: true },
-      orderBy: { date: 'desc' },
+      orderBy,
       skip: (page - 1) * limit,
       take: limit,
     }),
@@ -354,4 +378,45 @@ async function checkBudgetAlert(userId: string, categoryId: string) {
       },
     });
   }
+}
+
+export async function getFilteredSummary(userId: string, query: Omit<TransactionQuery, 'page' | 'limit'>) {
+  const { type, from, to, categoryId, minAmount, maxAmount, search } = query;
+
+  const where: any = { userId };
+  if (type) where.type = type;
+  if (categoryId) where.categoryId = categoryId;
+  
+  if (from || to) {
+    where.date = {};
+    if (from) where.date.gte = new Date(from);
+    if (to) where.date.lte = new Date(to);
+  }
+
+  if (minAmount !== undefined || maxAmount !== undefined) {
+    where.amount = {};
+    if (minAmount !== undefined) where.amount.gte = minAmount;
+    if (maxAmount !== undefined) where.amount.lte = maxAmount;
+  }
+
+  if (search) {
+    where.title = { contains: search, mode: 'insensitive' };
+  }
+
+  const transactions = await prisma.transaction.findMany({ where });
+
+  const totalIncome = transactions
+    .filter((t) => t.type === 'INCOME')
+    .reduce((sum, t) => sum + t.amountInBaseCurrency, 0);
+
+  const totalExpenses = transactions
+    .filter((t) => t.type === 'EXPENSE')
+    .reduce((sum, t) => sum + t.amountInBaseCurrency, 0);
+
+  return {
+    totalIncome: Math.round(totalIncome * 100) / 100,
+    totalExpenses: Math.round(totalExpenses * 100) / 100,
+    netBalance: Math.round((totalIncome - totalExpenses) * 100) / 100,
+    transactionCount: transactions.length,
+  };
 }

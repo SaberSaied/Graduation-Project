@@ -117,6 +117,7 @@ class FinancialPlanningPage extends ConsumerWidget {
           title: 'Financial Summary',
           isCollapsed: config.isCollapsed,
           onToggleCollapse: () => notifier.toggleCollapsed(config.type),
+          onActionTap: () => context.push('/transactions'),
           accentColor: AppColors.primary,
           child: const MonthlySummaryWidget(),
         );
@@ -125,6 +126,7 @@ class FinancialPlanningPage extends ConsumerWidget {
           title: 'AI Insights',
           isCollapsed: config.isCollapsed,
           onToggleCollapse: () => notifier.toggleCollapsed(config.type),
+          onActionTap: () => context.push('/analytics'),
           accentColor: Colors.purpleAccent,
           child: const InsightsWidget(),
         );

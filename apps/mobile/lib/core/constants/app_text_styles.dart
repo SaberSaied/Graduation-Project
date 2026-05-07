@@ -44,6 +44,12 @@ class AppTextStyles {
         height: 1.4,
       );
 
+  static TextStyle get titleSmall => GoogleFonts.inter(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        height: 1.4,
+      );
+
   static TextStyle get bodyLarge => GoogleFonts.inter(
         fontSize: 16,
         fontWeight: FontWeight.w400,
@@ -67,6 +73,12 @@ class AppTextStyles {
         fontWeight: FontWeight.w500,
         height: 1.4,
       );
+
+  static TextStyle get labelMedium => GoogleFonts.inter(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        height: 1.4,
+    );
 
   static TextStyle get labelSmall => GoogleFonts.inter(
         fontSize: 11,

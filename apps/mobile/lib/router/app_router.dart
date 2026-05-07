@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/register_page.dart';
 import '../features/dashboard/presentation/pages/dashboard_page.dart';
-import '../features/transactions/presentation/pages/transactions_page.dart';
+import '../features/history/presentation/pages/history_page.dart';
 import '../features/transactions/presentation/pages/add_transaction_page.dart';
 import '../features/ai_chat/presentation/pages/chat_page.dart';
 import '../features/goals/presentation/pages/goals_page.dart';
@@ -46,7 +46,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/transactions',
             name: 'transactions',
-            builder: (context, state) => const TransactionsPage(),
+            builder: (context, state) => const HistoryPage(),
           ),
           GoRoute(
             path: '/ai-chat',

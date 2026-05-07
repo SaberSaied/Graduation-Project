@@ -9,6 +9,7 @@ import {
   deleteTransaction,
   getMonthlySummary,
   getCategoryBreakdown,
+  getFilteredSummary,
 } from './transactions.controller';
 import { createTransactionSchema, updateTransactionSchema, transactionQuerySchema } from './transactions.schema';
 
@@ -18,6 +19,7 @@ transactionsRouter.use(requireAuth);
 
 transactionsRouter.get('/', validate(transactionQuerySchema, 'query'), getTransactions);
 transactionsRouter.post('/', validate(createTransactionSchema), createTransaction);
+transactionsRouter.get('/summary/filtered', validate(transactionQuerySchema, 'query'), getFilteredSummary);
 transactionsRouter.get('/summary/monthly', getMonthlySummary);
 transactionsRouter.get('/summary/by-category', getCategoryBreakdown);
 transactionsRouter.get('/:id', getTransaction);

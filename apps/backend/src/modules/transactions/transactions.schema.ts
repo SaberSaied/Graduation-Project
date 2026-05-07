@@ -30,6 +30,10 @@ export const transactionQuerySchema = z.object({
   from: z.string().optional(),
   to: z.string().optional(),
   categoryId: z.string().optional(),
+  minAmount: z.coerce.number().optional(),
+  maxAmount: z.coerce.number().optional(),
+  search: z.string().optional(),
+  sortBy: z.enum(['date_desc', 'date_asc', 'amount_desc', 'amount_asc']).optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
 });

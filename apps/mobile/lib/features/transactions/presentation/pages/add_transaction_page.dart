@@ -13,6 +13,9 @@ import '../../../../shared/widgets/app_text_field.dart';
 import '../../../goals/presentation/providers/goals_provider.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../../categories/domain/models/category_model.dart';
+import '../../../budgets/presentation/providers/budgets_provider.dart';
+import '../../../budgets/domain/models/budget_model.dart';
+import '../../../goals/domain/models/goal_model.dart';
 
 class AddTransactionPage extends ConsumerStatefulWidget {
   const AddTransactionPage({super.key});
@@ -29,6 +32,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
   String _type = 'EXPENSE';
   String? _categoryId;
   String? _goalId;
+  String? _budgetId;
   DateTime _date = DateTime.now();
   bool _isLoading = false;
   bool _isAnalyzing = false;
@@ -128,6 +132,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
         : categoriesState.expenseCategories;
 
     final goalsAsync = ref.watch(goalsProvider);
+    final budgetsAsync = ref.watch(budgetsProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Add Transaction')),
@@ -302,46 +307,66 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
               ),
               const SizedBox(height: 32),
 
-              // Related Goal (Optional)
-              Text('Related Goal (Optional)', style: AppTextStyles.labelLarge),
-              const SizedBox(height: 8),
-              goalsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, stack) => const Text('Could not load goals'),
-                data: (goals) {
-                  if (goals.isEmpty) {
-                    return const Text('No active goals available.');
-                  }
-                  return DropdownButtonFormField<String>(
-                    initialValue: _goalId,
-                    hint: const Text('Select a goal...'),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: isDark ? AppColors.dividerDark : AppColors.dividerLight),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: isDark ? AppColors.dividerDark : AppColors.dividerLight),
-                      ),
-                    ),
-                    items: [
-                      const DropdownMenuItem<String>(
-                        value: null,
-                        child: Text('None'),
-                      ),
-                      ...goals.map((g) => DropdownMenuItem(
-                        value: g.id,
-                        child: Text('${g.icon ?? '🎯'} ${g.title}'),
-                      )),
-                    ],
-                    onChanged: (v) => setState(() => _goalId = v),
-                  );
-                },
-              ),
+              // Related Budget/Goal (Optional)
+              if (_type == 'EXPENSE') ...[
+                Text('Related Budget (Optional)', style: AppTextStyles.labelLarge),
+                const SizedBox(height: 8),
+                budgetsAsync.when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (err, stack) => const Text('Could not load budgets'),
+                  data: (budgets) {
+                    final filteredBudgets = _categoryId != null 
+                        ? budgets.where((b) => b.categoryId == _categoryId).toList()
+                        : budgets;
+                    
+                    if (filteredBudgets.isEmpty) {
+                      return Text(
+                        _categoryId == null ? 'Select a category first' : 'No budget for this category',
+                        style: AppTextStyles.bodySmall.copyWith(color: Colors.grey),
+                      );
+                    }
+                    return DropdownButtonFormField<String>(
+                      value: _budgetId,
+                      hint: const Text('Select a budget...'),
+                      decoration: _dropdownDecoration(isDark),
+                      items: [
+                        const DropdownMenuItem<String>(value: null, child: Text('None')),
+                        ...filteredBudgets.map((b) => DropdownMenuItem(
+                          value: b.id,
+                          child: Text('${b.categoryIcon ?? '💰'} ${b.categoryName ?? 'Budget'}'),
+                        )),
+                      ],
+                      onChanged: (v) => setState(() => _budgetId = v),
+                    );
+                  },
+                ),
+              ] else ...[
+                Text('Related Goal (Optional)', style: AppTextStyles.labelLarge),
+                const SizedBox(height: 8),
+                goalsAsync.when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (err, stack) => const Text('Could not load goals'),
+                  data: (goals) {
+                    final activeGoals = goals.where((g) => g.status == GoalStatus.inProgress).toList();
+                    if (activeGoals.isEmpty) {
+                      return const Text('No active goals available.');
+                    }
+                    return DropdownButtonFormField<String>(
+                      value: _goalId,
+                      hint: const Text('Select a goal...'),
+                      decoration: _dropdownDecoration(isDark),
+                      items: [
+                        const DropdownMenuItem<String>(value: null, child: Text('None')),
+                        ...activeGoals.map((g) => DropdownMenuItem(
+                          value: g.id,
+                          child: Text('${g.icon ?? '🎯'} ${g.title}'),
+                        )),
+                      ],
+                      onChanged: (v) => setState(() => _goalId = v),
+                    );
+                  },
+                ),
+              ],
               const SizedBox(height: 16),
 
               // AI Analysis Button & Result
@@ -387,6 +412,22 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  InputDecoration _dropdownDecoration(bool isDark) {
+    return InputDecoration(
+      filled: true,
+      fillColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: isDark ? AppColors.dividerDark : AppColors.dividerLight),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: isDark ? AppColors.dividerDark : AppColors.dividerLight),
       ),
     );
   }

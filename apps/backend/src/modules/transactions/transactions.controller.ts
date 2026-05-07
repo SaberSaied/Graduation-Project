@@ -71,3 +71,12 @@ export async function getCategoryBreakdown(req: Request, res: Response, next: Ne
     next(error);
   }
 }
+
+export async function getFilteredSummary(req: Request, res: Response, next: NextFunction) {
+  try {
+    const summary = await transactionsService.getFilteredSummary(req.user!.id, req.query as any);
+    res.json({ data: summary });
+  } catch (error) {
+    next(error);
+  }
+}

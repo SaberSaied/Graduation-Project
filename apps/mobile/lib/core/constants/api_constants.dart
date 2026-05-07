@@ -35,6 +35,7 @@ class ApiConstants {
   static String get transactions => '${baseUrl}transactions';
   static String get transactionsMonthlySummary => '${baseUrl}transactions/summary/monthly';
   static String get transactionsByCategory => '${baseUrl}transactions/summary/by-category';
+  static String get transactionsFilteredSummary => '${baseUrl}transactions/summary/filtered';
 
   // Budgets
   static String get budgets => '${baseUrl}budgets';
