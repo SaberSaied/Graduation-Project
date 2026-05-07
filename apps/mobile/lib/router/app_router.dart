@@ -16,6 +16,7 @@ import '../features/settings/presentation/pages/settings_page.dart';
 import '../features/settings/presentation/pages/categories_page.dart';
 import '../features/settings/presentation/pages/account_details_page.dart';
 import '../features/notifications/presentation/pages/notifications_page.dart';
+import '../features/financial_planning/presentation/pages/financial_planning_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -53,9 +54,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const ChatPage(),
           ),
           GoRoute(
-            path: '/goals',
-            name: 'goals',
-            builder: (context, state) => const GoalsPage(),
+            path: '/financial-planning',
+            name: 'financial-planning',
+            builder: (context, state) => const FinancialPlanningPage(),
           ),
           GoRoute(
             path: '/settings',
@@ -75,6 +76,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/transactions/add',
         name: 'add-transaction',
         builder: (context, state) => const AddTransactionPage(),
+      ),
+      GoRoute(
+        path: '/goals',
+        name: 'goals',
+        builder: (context, state) => const GoalsPage(),
       ),
       GoRoute(
         path: '/goals/:id',
@@ -112,7 +118,7 @@ class MainShell extends StatelessWidget {
   int _getIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
     if (location.startsWith('/dashboard')) return 0;
-    if (location.startsWith('/transactions')) return 1;
+    if (location.startsWith('/financial-planning')) return 1;
     if (location.startsWith('/ai-chat')) return 2;
     if (location.startsWith('/settings')) return 3;
     return 0;
@@ -123,7 +129,7 @@ class MainShell extends StatelessWidget {
       case 0:
         context.go('/dashboard');
       case 1:
-        context.go('/transactions');
+        context.go('/financial-planning');
       case 2:
         context.go('/ai-chat');
       case 3:
@@ -165,8 +171,8 @@ class MainShell extends StatelessWidget {
               onTap: () => _onTap(context, 0),
             ),
             _NavItem(
-              icon: Icons.receipt_long_rounded,
-              label: 'History',
+              icon: Icons.account_balance_wallet_rounded,
+              label: 'Planning',
               isSelected: currentIndex == 1,
               onTap: () => _onTap(context, 1),
             ),

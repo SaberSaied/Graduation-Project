@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum CategoryType { INCOME, EXPENSE }
+enum CategoryType { income, expense }
 
 class Category {
   final String id;
@@ -29,7 +29,7 @@ class Category {
       name: json['name'],
       icon: json['icon'],
       color: json['color'],
-      type: json['type'] == 'INCOME' ? CategoryType.INCOME : CategoryType.EXPENSE,
+      type: json['type'] == 'INCOME' ? CategoryType.income : CategoryType.expense,
       isDefault: json['isDefault'] ?? false,
       userId: json['userId'],
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
@@ -42,7 +42,7 @@ class Category {
       'name': name,
       'icon': icon,
       'color': color,
-      'type': type == CategoryType.INCOME ? 'INCOME' : 'EXPENSE',
+      'type': type == CategoryType.income ? 'INCOME' : 'EXPENSE',
       'isDefault': isDefault,
       'userId': userId,
       'createdAt': createdAt?.toIso8601String(),

@@ -1,5 +1,6 @@
 import { prisma } from '../../config/database';
 import { AppError } from '../../middleware/error.middleware';
+import { subMonths, startOfMonth, endOfMonth } from 'date-fns';
 
 export async function getGoals(userId: string) {
   return prisma.goal.findMany({
@@ -20,9 +21,10 @@ export async function getGoal(goalId: string, userId: string) {
     include: {
       contributions: {
         orderBy: { date: 'desc' },
+        include: { transaction: true } as any
       },
     },
-  });
+  }) as any;
 
   if (!goal) throw new AppError('Goal not found', 404);
   return goal;
@@ -35,15 +37,19 @@ export async function createGoal(
     description?: string | null;
     targetAmount: number;
     currency: string;
-    deadline?: Date | null;
+    deadline?: string | null;
     icon?: string | null;
     color?: string | null;
+    autoSaveAmount?: number;
+    autoSavePercentage?: number;
+    autoSaveFrequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY';
   }
 ) {
   return prisma.goal.create({
     data: {
       userId,
       ...data,
+      deadline: data.deadline ? new Date(data.deadline) : null,
     },
     include: { contributions: true },
   });
@@ -56,18 +62,24 @@ export async function updateGoal(
     title: string;
     description: string | null;
     targetAmount: number;
-    deadline: Date | null;
+    deadline: string | null;
     icon: string | null;
     color: string | null;
     status: 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+    autoSaveAmount: number;
+    autoSavePercentage: number;
+    autoSaveFrequency: 'DAILY' | 'WEEKLY' | 'MONTHLY';
   }>
 ) {
   const goal = await prisma.goal.findFirst({ where: { id: goalId, userId } });
   if (!goal) throw new AppError('Goal not found', 404);
 
+  const updateData: any = { ...data };
+  if (data.deadline) updateData.deadline = new Date(data.deadline);
+
   return prisma.goal.update({
     where: { id: goalId },
-    data,
+    data: updateData,
     include: { contributions: true },
   });
 }
@@ -82,7 +94,7 @@ export async function deleteGoal(goalId: string, userId: string) {
 export async function contributeToGoal(
   goalId: string,
   userId: string,
-  data: { amount: number; note?: string | null }
+  data: { amount: number; note?: string | null; transactionId?: string }
 ) {
   const goal = await prisma.goal.findFirst({ where: { id: goalId, userId } });
   if (!goal) throw new AppError('Goal not found', 404);
@@ -101,7 +113,8 @@ export async function contributeToGoal(
         goalId,
         amount: data.amount,
         note: data.note,
-      },
+        transactionId: data.transactionId,
+      } as any,
     }),
     prisma.goal.update({
       where: { id: goalId },
@@ -137,44 +150,81 @@ export async function contributeToGoal(
   return { contribution, goal: updatedGoal };
 }
 
-export async function getGoalProgress(goalId: string, userId: string) {
-  const goal = await prisma.goal.findFirst({
-    where: { id: goalId, userId },
-    include: {
-      contributions: {
-        orderBy: { date: 'desc' },
-      },
+export async function getGoalAnalytics(userId: string) {
+  const now = new Date();
+  const last6Months = subMonths(now, 6);
+
+  // Get contributions by month
+  const contributions = await prisma.goalContribution.findMany({
+    where: {
+      goal: { userId },
+      date: { gte: last6Months },
     },
+    orderBy: { date: 'asc' },
   });
 
-  if (!goal) throw new AppError('Goal not found', 404);
+  const monthlyData: Record<string, number> = {};
+  for (let i = 0; i < 6; i++) {
+    const monthDate = subMonths(now, i);
+    const key = `${monthDate.getFullYear()}-${monthDate.getMonth() + 1}`;
+    monthlyData[key] = 0;
+  }
 
+  contributions.forEach(c => {
+    const key = `${c.date.getFullYear()}-${c.date.getMonth() + 1}`;
+    if (monthlyData[key] !== undefined) {
+      monthlyData[key] += c.amount;
+    }
+  });
+
+  const trend = Object.entries(monthlyData).map(([month, amount]) => ({
+    month,
+    amount,
+  })).sort((a, b) => a.month.localeCompare(b.month));
+
+  // Saving consistency (average per month)
+  const totalSaved = trend.reduce((sum, d) => sum + d.amount, 0);
+  const averageSaved = totalSaved / trend.length;
+
+  return {
+    trend,
+    averageSaved: Math.round(averageSaved * 100) / 100,
+    totalSavedInPeriod: Math.round(totalSaved * 100) / 100,
+  };
+}
+
+export async function getGoalProgress(goalId: string, userId: string) {
+  const goal = await getGoal(goalId, userId);
   const progressPercent = (goal.savedAmount / goal.targetAmount) * 100;
   const remaining = goal.targetAmount - goal.savedAmount;
 
-  // Calculate required monthly saving if deadline exists
-  let requiredMonthlySaving = null;
-  if (goal.deadline && remaining > 0) {
-    const now = new Date();
-    const deadline = new Date(goal.deadline);
-    const monthsLeft = Math.max(
-      1,
-      (deadline.getFullYear() - now.getFullYear()) * 12 + (deadline.getMonth() - now.getMonth())
-    );
-    requiredMonthlySaving = Math.round((remaining / monthsLeft) * 100) / 100;
+  // Calculate projected completion date based on average monthly contribution
+  const now = new Date();
+  const last3Months = subMonths(now, 3);
+  const recentContributions = await prisma.goalContribution.aggregate({
+    where: {
+      goalId,
+      date: { gte: last3Months },
+    },
+    _sum: { amount: true },
+  });
+
+  const averageMonthly = (recentContributions._sum.amount || 0) / 3;
+  let projectedMonths = null;
+  let projectedDate = null;
+
+  if (averageMonthly > 0 && remaining > 0) {
+    projectedMonths = Math.ceil(remaining / averageMonthly);
+    projectedDate = new Date();
+    projectedDate.setMonth(projectedDate.getMonth() + projectedMonths);
   }
 
   return {
     goal,
     progressPercent: Math.round(progressPercent * 100) / 100,
     remaining: Math.round(remaining * 100) / 100,
-    requiredMonthlySaving,
-    totalContributions: goal.contributions.length,
-    averageContribution:
-      goal.contributions.length > 0
-        ? Math.round(
-            (goal.contributions.reduce((sum, c) => sum + c.amount, 0) / goal.contributions.length) * 100
-          ) / 100
-        : 0,
+    projectedMonths,
+    projectedDate,
+    averageMonthly: Math.round(averageMonthly * 100) / 100,
   };
 }

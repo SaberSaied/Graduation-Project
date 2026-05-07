@@ -10,7 +10,7 @@ import '../../../../core/utils/validators.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
-import '../../../goals/presentation/pages/goals_page.dart';
+import '../../../goals/presentation/providers/goals_provider.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../../categories/domain/models/category_model.dart';
 
@@ -267,7 +267,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                           ),
                         ),
                       );
-                    }).toList(),
+                    }),
                 ],
               ),
               const SizedBox(height: 16),

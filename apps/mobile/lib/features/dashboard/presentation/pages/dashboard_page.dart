@@ -9,12 +9,8 @@ import '../../../../core/network/network_providers.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../shared/widgets/error_widget.dart';
+import '../providers/dashboard_provider.dart';
 
-final dashboardProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
-  final client = ref.watch(dioClientProvider);
-  final response = await client.get(ApiConstants.analyticsDashboard);
-  return response.data['data'] as Map<String, dynamic>;
-});
 
 class DashboardPage extends ConsumerWidget {
   const DashboardPage({super.key});

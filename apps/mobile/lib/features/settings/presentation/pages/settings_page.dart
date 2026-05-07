@@ -19,22 +19,13 @@ class SettingsPage extends ConsumerWidget {
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
-          // Goals
+          // Account
           ListTile(
-            leading: const Icon(Icons.flag_outlined, color: AppColors.primaryLight),
-            title: const Text('Goals'),
+            leading: const Icon(Icons.person_outline),
+            title: const Text('Account Details'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push('/goals'),
+            onTap: () => context.push('/settings/account'),
           ),
-
-          // Analytics
-          ListTile(
-            leading: const Icon(Icons.analytics_outlined, color: AppColors.primaryLight),
-            title: const Text('Analytics'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push('/analytics'),
-          ),
-          const Divider(),
 
           // Theme
           ListTile(
@@ -45,12 +36,20 @@ class SettingsPage extends ConsumerWidget {
             onTap: () => _showThemeDialog(context, ref, themeMode),
           ),
 
-          // Account
+          // History
           ListTile(
-            leading: const Icon(Icons.person_outline),
-            title: const Text('Account Details'),
+            leading: const Icon(Icons.history_rounded, color: AppColors.primaryLight),
+            title: const Text('Transaction History'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push('/settings/account'),
+            onTap: () => context.push('/transactions'),
+          ),
+
+          // Analytics
+          ListTile(
+            leading: const Icon(Icons.analytics_outlined, color: AppColors.primaryLight),
+            title: const Text('Analytics'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/analytics'),
           ),
 
           // Categories
@@ -61,13 +60,6 @@ class SettingsPage extends ConsumerWidget {
             onTap: () => context.push('/settings/categories'),
           ),
 
-          // Budgets
-          ListTile(
-            leading: const Icon(Icons.pie_chart_outline),
-            title: const Text('Manage Budgets'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push('/budgets'),
-          ),
           const Divider(),
 
           // Logout

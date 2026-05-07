@@ -11,7 +11,7 @@ import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../core/models/models.dart';
 import '../widgets/goal_dialog.dart';
-import 'goals_page.dart';
+import '../providers/goals_provider.dart';
 
 final goalDetailProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, id) async {
   final client = ref.watch(dioClientProvider);

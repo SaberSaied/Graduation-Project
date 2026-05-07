@@ -19,7 +19,18 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
       take: 5,
     }),
     prisma.budget.findMany({
-      where: { userId, month: now.getMonth() + 1, year: now.getFullYear() },
+      where: { 
+        userId,
+        OR: [
+          { period: 'MONTHLY' },
+          {
+            AND: [
+              { startDate: { lte: endOfMonth } },
+              { endDate: { gte: startOfMonth } }
+            ]
+          }
+        ]
+      } as any,
       include: { category: true },
     }),
     prisma.goal.findMany({
@@ -27,21 +38,21 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
       orderBy: { createdAt: 'desc' },
       take: 3,
     }),
-  ]);
+  ]) as any;
 
   const totalIncome = transactions
-    .filter((t) => t.type === 'INCOME')
-    .reduce((sum, t) => sum + t.amountInBaseCurrency, 0);
+    .filter((t:any) => t.type === 'INCOME')
+    .reduce((sum:any, t:any) => sum + t.amountInBaseCurrency, 0);
 
   const totalExpenses = transactions
-    .filter((t) => t.type === 'EXPENSE')
-    .reduce((sum, t) => sum + t.amountInBaseCurrency, 0);
+    .filter((t:any) => t.type === 'EXPENSE')
+    .reduce((sum:any, t:any) => sum + t.amountInBaseCurrency, 0);
 
   // Category breakdown
   const categoryMap = new Map<string, CategoryBreakdown>();
   transactions
-    .filter((t) => t.type === 'EXPENSE')
-    .forEach((t) => {
+    .filter((t:any) => t.type === 'EXPENSE')
+    .forEach((t:any) => {
       const existing = categoryMap.get(t.categoryId);
       if (existing) {
         existing.total += t.amountInBaseCurrency;
@@ -71,8 +82,8 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
   const budgetAlerts = [];
   for (const budget of budgets) {
     const spent = transactions
-      .filter((t) => t.type === 'EXPENSE' && t.categoryId === budget.categoryId)
-      .reduce((sum, t) => sum + t.amountInBaseCurrency, 0);
+      .filter((t:any) => t.type === 'EXPENSE' && t.categoryId === budget.categoryId)
+      .reduce((sum:any, t:any) => sum + t.amountInBaseCurrency, 0);
 
     const usagePercent = Math.round((spent / budget.amount) * 100);
     if (usagePercent >= 70) {

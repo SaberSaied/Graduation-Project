@@ -64,55 +64,64 @@ model Transaction {
   category             Category        @relation(fields: [categoryId], references: [id])
   user                 User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  goalContribution GoalContribution?
+
   @@index([userId, date])
   @@index([userId, type])
   @@map("transactions")
 }
 
 model Budget {
-  id         String   @id @default(cuid())
-  userId     String
-  categoryId String
-  amount     Float
-  currency   String
-  month      Int
-  year       Int
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  category   Category @relation(fields: [categoryId], references: [id])
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  userId         String
+  categoryId     String
+  amount         Float
+  currency       String
+  period         BudgetPeriod @default(MONTHLY)
+  startDate      DateTime?
+  endDate        DateTime?
+  alertThreshold Float        @default(0.8)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  category       Category     @relation(fields: [categoryId], references: [id])
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, categoryId, month, year])
+  @@unique([userId, categoryId, period, startDate, endDate])
   @@map("budgets")
 }
 
 model Goal {
-  id            String             @id @default(cuid())
-  userId        String
-  title         String
-  description   String?
-  targetAmount  Float
-  savedAmount   Float              @default(0)
-  currency      String
-  deadline      DateTime?
-  icon          String?
-  color         String?
-  status        GoalStatus         @default(IN_PROGRESS)
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-  contributions GoalContribution[]
-  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 String             @id @default(cuid())
+  userId             String
+  title              String
+  description        String?
+  targetAmount       Float
+  savedAmount        Float              @default(0)
+  currency           String
+  deadline           DateTime?
+  icon               String?
+  color              String?
+  status             GoalStatus         @default(IN_PROGRESS)
+  autoSaveAmount     Float?
+  autoSavePercentage Float?
+  autoSaveFrequency  AutoSaveFrequency?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  contributions      GoalContribution[]
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("goals")
 }
 
 model GoalContribution {
-  id     String   @id @default(cuid())
-  goalId String
-  amount Float
-  note   String?
-  date   DateTime @default(now())
-  goal   Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  id            String       @id @default(cuid())
+  goalId        String
+  transactionId String?      @unique
+  amount        Float
+  note          String?
+  date          DateTime     @default(now())
+  goal          Goal         @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  transaction   Transaction? @relation(fields: [transactionId], references: [id])
 
   @@map("goal_contributions")
 }
@@ -152,6 +161,18 @@ model ChatMessage {
   session       ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
 
   @@map("chat_messages")
+}
+
+enum BudgetPeriod {
+  WEEKLY
+  MONTHLY
+  CUSTOM
+}
+
+enum AutoSaveFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
 }
 
 enum CategoryType {

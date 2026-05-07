@@ -56,4 +56,6 @@ class AppColors {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
+
+  static Color get primary => primaryLight;
 }

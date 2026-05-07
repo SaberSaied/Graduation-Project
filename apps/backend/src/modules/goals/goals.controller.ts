@@ -68,3 +68,12 @@ export async function getGoalProgress(req: Request, res: Response, next: NextFun
     next(error);
   }
 }
+
+export async function getGoalAnalytics(req: Request, res: Response, next: NextFunction) {
+  try {
+    const analytics = await goalsService.getGoalAnalytics(req.user!.id);
+    res.json({ data: analytics });
+  } catch (error) {
+    next(error);
+  }
+}

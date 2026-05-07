@@ -35,16 +35,21 @@ AVAILABLE ACTIONS:
    - deadline: string (ISO date, optional)
    - icon: string (emoji)
    - color: string (hex)
+   - autoSaveAmount: number (optional)
+   - autoSavePercentage: number (optional)
+   - autoSaveFrequency: "DAILY" | "WEEKLY" | "MONTHLY" (optional)
 
 4. CONTRIBUTE_TO_GOAL:
    - goalTitle: string
    - amount: number
 
-5. CREATE_BUDGET:
+5. CREATE_BUDGET (Expense Control):
    - category: string (name)
    - amount: number
-   - month: number (1-12)
-   - year: number
+   - period: "WEEKLY" | "MONTHLY" | "CUSTOM" (default "MONTHLY")
+   - alertThreshold: number (0 to 1, default 0.8)
+   - startDate: string (ISO date, required if CUSTOM)
+   - endDate: string (ISO date, required if CUSTOM)
 
 6. CREATE_REMINDER:
    - title: string
@@ -64,12 +69,14 @@ Respond ONLY with a valid JSON object in this exact format (no markdown blocks, 
 }
 
 RULES:
+- Budgets are strictly for EXPENSES. Goals are for SAVINGS.
 - If a category mentioned doesn't exist in the system, you MUST also include a CREATE_CATEGORY action for it BEFORE the action that uses it.
 - Today's date is ${now.toISOString()}.
 - User's base currency is ${user.currency}.
 - Be precise with amounts and dates.
 - If the user says "save 1000 for car", it's a CONTRIBUTE_TO_GOAL action for "car".
 - If the user says "spent 50 on food", it's a CREATE_TRANSACTION action (type EXPENSE).
+- If the user says "budget my entertainment to 300", it's a CREATE_BUDGET action for category "entertainment".
 `;
 
   const responseText = await callAI(systemPrompt, prompt);

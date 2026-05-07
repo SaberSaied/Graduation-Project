@@ -14,7 +14,7 @@ class CategoriesRepository {
     final response = await _dioClient.get(
       ApiConstants.categories,
       queryParameters: {
-        if (type != null) 'type': type == CategoryType.INCOME ? 'INCOME' : 'EXPENSE',
+        if (type != null) 'type': type == CategoryType.income ? 'INCOME' : 'EXPENSE',
         if (search != null && search.isNotEmpty) 'search': search,
       },
     );
@@ -42,7 +42,7 @@ class CategoriesRepository {
         'name': name,
         'icon': icon,
         'color': color,
-        'type': type == CategoryType.INCOME ? 'INCOME' : 'EXPENSE',
+        'type': type == CategoryType.income ? 'INCOME' : 'EXPENSE',
       },
     );
     return Category.fromJson(response.data['data']);
@@ -52,9 +52,9 @@ class CategoriesRepository {
     final response = await _dioClient.patch(
       '${ApiConstants.categories}/$id',
       data: {
-        if (name != null) 'name': name,
-        if (icon != null) 'icon': icon,
-        if (color != null) 'color': color,
+        'name': name,
+        'icon': icon,
+        'color': color,
       },
     );
     return Category.fromJson(response.data['data']);

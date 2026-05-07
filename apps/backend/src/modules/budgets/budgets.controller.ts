@@ -3,9 +3,7 @@ import * as budgetsService from './budgets.service';
 
 export async function getBudgets(req: Request, res: Response, next: NextFunction) {
   try {
-    const month = req.query.month ? parseInt(req.query.month as string) : new Date().getMonth() + 1;
-    const year = req.query.year ? parseInt(req.query.year as string) : new Date().getFullYear();
-    const budgets = await budgetsService.getBudgets(req.user!.id, month, year);
+    const budgets = await budgetsService.getBudgets(req.user!.id);
     res.json({ data: budgets });
   } catch (error) {
     next(error);
@@ -43,10 +41,17 @@ export async function deleteBudget(req: Request, res: Response, next: NextFuncti
 
 export async function getBudgetStatus(req: Request, res: Response, next: NextFunction) {
   try {
-    const month = req.query.month ? parseInt(req.query.month as string) : new Date().getMonth() + 1;
-    const year = req.query.year ? parseInt(req.query.year as string) : new Date().getFullYear();
-    const status = await budgetsService.getBudgetStatus(req.user!.id, month, year);
+    const status = await budgetsService.getBudgetStatus(req.user!.id);
     res.json({ data: status });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getAnalytics(req: Request, res: Response, next: NextFunction) {
+  try {
+    const analytics = await budgetsService.getBudgetAnalytics(req.user!.id);
+    res.json({ data: analytics });
   } catch (error) {
     next(error);
   }

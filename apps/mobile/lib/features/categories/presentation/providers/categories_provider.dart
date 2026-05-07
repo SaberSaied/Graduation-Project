@@ -50,8 +50,8 @@ class CategoriesNotifier extends StateNotifier<CategoriesState> {
     if (cached != null && search == null) {
       final List<Category> all = cached.map((e) => Category.fromJson(e)).toList();
       state = state.copyWith(
-        incomeCategories: all.where((c) => c.type == CategoryType.INCOME).toList(),
-        expenseCategories: all.where((c) => c.type == CategoryType.EXPENSE).toList(),
+        incomeCategories: all.where((c) => c.type == CategoryType.income).toList(),
+        expenseCategories: all.where((c) => c.type == CategoryType.expense).toList(),
       );
     }
 
@@ -84,7 +84,7 @@ class CategoriesNotifier extends StateNotifier<CategoriesState> {
   Future<void> addCategory(String name, String icon, String color, CategoryType type) async {
     try {
       final newCat = await _repository.createCategory(name, icon, color, type);
-      if (type == CategoryType.INCOME) {
+      if (type == CategoryType.income) {
         state = state.copyWith(incomeCategories: [...state.incomeCategories, newCat]..sort((a, b) => a.name.compareTo(b.name)));
       } else {
         state = state.copyWith(expenseCategories: [...state.expenseCategories, newCat]..sort((a, b) => a.name.compareTo(b.name)));

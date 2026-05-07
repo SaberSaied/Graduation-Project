@@ -62,7 +62,7 @@ export async function executeBatchActions(userId: string, actions: AIAction[]) {
             title: action.data.title,
             targetAmount: Number(action.data.targetAmount),
             currency: action.data.currency || 'USD',
-            deadline: action.data.deadline ? new Date(action.data.deadline) : null,
+            deadline: action.data.deadline,
             description: action.data.description,
             icon: action.data.icon || '🎯',
             color: action.data.color || '#2196F3',
@@ -114,9 +114,11 @@ export async function executeBatchActions(userId: string, actions: AIAction[]) {
             categoryId: category.id,
             amount: Number(action.data.amount),
             currency: action.data.currency || 'USD',
-            month: Number(action.data.month),
-            year: Number(action.data.year),
-          });
+            period: (action.data.period as any) || 'MONTHLY',
+            startDate: action.data.startDate ? new Date(action.data.startDate) : null,
+            endDate: action.data.endDate ? new Date(action.data.endDate) : null,
+            alertThreshold: action.data.alertThreshold ? Number(action.data.alertThreshold) : 0.8,
+          } as any);
           results.push({ type: action.type, result });
           break;
         }

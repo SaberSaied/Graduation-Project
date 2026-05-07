@@ -108,7 +108,7 @@ class _CategoryTile extends ConsumerWidget {
           child: Text(category.icon, style: const TextStyle(fontSize: 24)),
         ),
         title: Text(category.name, style: AppTextStyles.titleMedium),
-        subtitle: Text(category.type == CategoryType.INCOME ? 'Income' : 'Expense', style: AppTextStyles.bodySmall),
+        subtitle: Text(category.type == CategoryType.income ? 'Income' : 'Expense', style: AppTextStyles.bodySmall),
         trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -146,7 +146,9 @@ class _CategoryTile extends ConsumerWidget {
               try {
                 await ref.read(categoriesProvider.notifier).deleteCategory(category.id);
                 if (ctx.mounted) Navigator.pop(ctx);
-              } catch (err) {}
+              } catch (err) {
+                debugPrint('Failed to delete category: $err');
+              }
             },
             child: const Text('Delete', style: TextStyle(color: AppColors.errorLight)),
           ),
@@ -185,7 +187,7 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
       _nameController.text = widget.category!.name;
       _selectedIcon = widget.category!.icon;
       _selectedColor = widget.category!.color;
-      _selectedType = widget.category!.type == CategoryType.INCOME ? 'INCOME' : 'EXPENSE';
+      _selectedType = widget.category!.type == CategoryType.income ? 'INCOME' : 'EXPENSE';
     }
   }
 
@@ -295,7 +297,7 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
               _nameController.text,
               _selectedIcon,
               _selectedColor,
-              _selectedType == 'INCOME' ? CategoryType.INCOME : CategoryType.EXPENSE,
+              _selectedType == 'INCOME' ? CategoryType.income : CategoryType.expense,
             );
       } else {
         final client = ref.read(dioClientProvider);
