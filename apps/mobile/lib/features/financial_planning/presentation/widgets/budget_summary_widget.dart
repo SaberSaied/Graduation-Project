@@ -4,7 +4,6 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import 'package:finance_manager/core/utils/currency_formatter.dart';
 import '../../../budgets/presentation/providers/budgets_provider.dart';
-import '../../../budgets/domain/models/budget_model.dart';
 
 class BudgetSummaryWidget extends ConsumerWidget {
   const BudgetSummaryWidget({super.key});

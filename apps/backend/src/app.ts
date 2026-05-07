@@ -14,6 +14,8 @@ import { goalsRouter } from './modules/goals/goals.router';
 import { analyticsRouter } from './modules/analytics/analytics.router';
 import { aiChatRouter } from './modules/ai-chat/ai-chat.router';
 import { notificationsRouter } from './modules/notifications/notifications.router';
+import { predictionsRouter } from './modules/predictions/predictions.router';
+import obligationsRouter from './modules/obligations/obligations.router';
 
 export const app:Application = express();
 
@@ -49,6 +51,8 @@ app.use('/api/v1/goals',         goalsRouter);
 app.use('/api/v1/analytics',     analyticsRouter);
 app.use('/api/v1/ai',            aiChatRouter);
 app.use('/api/v1/notifications', notificationsRouter);
+app.use('/api/v1/predictions',   predictionsRouter);
+app.use('/api/v1/obligations',   obligationsRouter);
 
 // ─── 404 Handler ──────────────────────────────────
 app.use((req, res) => {

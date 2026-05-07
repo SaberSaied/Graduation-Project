@@ -11,7 +11,7 @@ async function buildSystemPrompt(userId: string): Promise<string> {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-  const [user, transactions, goals, budgets] = await Promise.all([
+  const [user, transactions, goals, budgets, allCategories] = await Promise.all([
     prisma.user.findUniqueOrThrow({ where: { id: userId } }),
     prisma.transaction.findMany({
       where: { userId, date: { gte: startOfMonth, lt: endOfMonth } },
@@ -20,8 +20,11 @@ async function buildSystemPrompt(userId: string): Promise<string> {
     }),
     prisma.goal.findMany({ where: { userId, status: 'IN_PROGRESS' } }),
     prisma.budget.findMany({
-      where: { userId, month: now.getMonth() + 1, year: now.getFullYear() },
+      where: { userId },
       include: { category: true },
+    }),
+    prisma.category.findMany({
+      where: { OR: [{ userId }, { isDefault: true }] },
     }),
   ]);
 
@@ -99,12 +102,23 @@ ${goals.map((g) => `- ${g.title}: ${g.savedAmount}/${g.targetAmount} ${g.currenc
 BUDGET STATUS:
 ${budgetStatus.map((b) => `- ${b.category}: spent ${b.spent}/${b.limit} ${user.currency} (${b.usagePercent}% used)`).join('\n')}
 
+
+AVAILABLE CATEGORIES:
+- Expenses: ${allCategories.filter(c => c.type === 'EXPENSE').map(c => c.name).join(', ')}
+- Income: ${allCategories.filter(c => c.type === 'INCOME').map(c => c.name).join(', ')}
+
 You can help the user:
 1. Understand their spending patterns
 2. Give saving tips based on your data
 3. Answer financial questions
-4. Log transactions (expense/income) via natural language
-5. Add new categories, set budgets, and create financial goals
+4. Log transactions (expense/income) via natural language. 
+   - CRITICAL: Automatically categorize the transaction based on its title or description. 
+   - If "Uber" or "Lyft" -> Transportation.
+   - If "Netflix" or "Spotify" -> Subscriptions.
+   - If "KFC" or "Burger King" -> Food.
+   - If "Salary" or "Paycheck" -> Salary.
+   - Use your semantic understanding to pick the best matching category from AVAILABLE CATEGORIES.
+   - If NO category fits, propose a new sensible one with a name, emoji icon, and color.
 
 NATURAL LANGUAGE COMMANDS:
 For specific actions, respond in this exact JSON format ONLY (no extra text). 
@@ -117,7 +131,9 @@ Generate sensible defaults for icons and colors if not provided (use emojis for 
     "type": "EXPENSE", // or "INCOME"
     "amount": 50,
     "currency": "${user.currency}",
-    "category": "Food & Dining",
+    "category": "Food & Dining", // Categorize automatically
+    "categoryIcon": "🍔", // Suggested icon for the category
+    "categoryColor": "#FF7043", // Suggested color for the category
     "title": "Lunch at cafe",
     "date": "${new Date().toISOString()}"
   }
@@ -140,9 +156,7 @@ Generate sensible defaults for icons and colors if not provided (use emojis for 
   "data": {
     "category": "Food & Dining",
     "amount": 500,
-    "currency": "${user.currency}",
-    "month": ${now.getMonth() + 1},
-    "year": ${now.getFullYear()}
+    "currency": "${user.currency}"
   }
 }
 
@@ -223,26 +237,36 @@ export async function processMessage(userId: string, message: string, sessionId?
   if (parsed && parsed.action) {
     try {
       if (parsed.action === 'ADD_TRANSACTION') {
-        const category = await prisma.category.findFirst({
+        let category = await prisma.category.findFirst({
           where: {
             name: { contains: parsed.data.category, mode: 'insensitive' },
             OR: [{ isDefault: true }, { userId }],
           },
         });
 
-        if (category) {
-          actionResult = await transactionsService.createTransaction(userId, {
-            categoryId: category.id,
-            type: (parsed.data.type || 'EXPENSE').toUpperCase() as any,
-            amount: Number(parsed.data.amount),
-            currency: parsed.data.currency,
-            title: parsed.data.title,
-            date: parsed.data.date ? new Date(parsed.data.date) : new Date(),
+        // Auto-create category if it doesn't exist
+        if (!category) {
+          category = await prisma.category.create({
+            data: {
+              userId,
+              name: parsed.data.category,
+              icon: parsed.data.categoryIcon || '📁',
+              color: parsed.data.categoryColor || '#9E9E9E',
+              type: (parsed.data.type || 'EXPENSE').toUpperCase() as any,
+              isDefault: false,
+            },
           });
-          displayMessage = `✅ Got it! I've added your ${parsed.data.category} ${parsed.data.type.toLowerCase()} of ${parsed.data.amount} ${parsed.data.currency}.`;
-        } else {
-          displayMessage = `I understood you want to add a transaction, but I couldn't find the category "${parsed.data.category}". Please try with a valid category name.`;
         }
+
+        actionResult = await transactionsService.createTransaction(userId, {
+          categoryId: category.id,
+          type: (parsed.data.type || 'EXPENSE').toUpperCase() as any,
+          amount: Number(parsed.data.amount),
+          currency: parsed.data.currency || 'USD',
+          title: parsed.data.title,
+          date: parsed.data.date ? new Date(parsed.data.date) : new Date(),
+        });
+        displayMessage = `✅ Got it! I've added your ${category.name} ${parsed.data.type.toLowerCase()} of ${parsed.data.amount} ${parsed.data.currency || 'USD'}.`;
       } 
       else if (parsed.action === 'ADD_CATEGORY') {
         actionResult = await categoriesService.createCategory(userId, {
@@ -266,10 +290,8 @@ export async function processMessage(userId: string, message: string, sessionId?
             categoryId: category.id,
             amount: Number(parsed.data.amount),
             currency: parsed.data.currency,
-            month: Number(parsed.data.month),
-            year: Number(parsed.data.year),
-          });
-          displayMessage = `✅ Budget set! Your limit for ${category.name} in ${new Date(Number(parsed.data.year), Number(parsed.data.month) - 1).toLocaleString('default', { month: 'long' })} is now ${parsed.data.amount} ${parsed.data.currency}.`;
+          } as any);
+          displayMessage = `✅ Budget set! Your limit for ${category.name} is now ${parsed.data.amount} ${parsed.data.currency}.`;
         } else {
           displayMessage = `I tried to set a budget, but I couldn't find the category "${parsed.data.category}".`;
         }

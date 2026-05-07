@@ -5,8 +5,6 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_formatter.dart';
-import '../../../../core/network/network_providers.dart';
-import '../../../../core/constants/api_constants.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../shared/widgets/error_widget.dart';
 import '../providers/dashboard_provider.dart';
@@ -126,6 +124,8 @@ class _DashboardContent extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 24),
+        _buildQuickActions(context),
+        const SizedBox(height: 24),
 
         // Budget Alerts
         if (budgetAlerts.isNotEmpty) ...[
@@ -164,6 +164,72 @@ class _DashboardContent extends StatelessWidget {
           )
         else
           ...recentTx.map((tx) => _TransactionTile(tx: tx, isDark: isDark)),
+      ],
+    );
+  }
+
+  Widget _buildQuickActions(BuildContext context) {
+    return GridView.count(
+      shrinkWrap: true,
+      crossAxisCount: 4,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 16,
+      children: [
+        _QuickAction(
+          icon: Icons.receipt_long_rounded,
+          label: 'Bills',
+          color: Colors.blue,
+          onTap: () => context.push('/obligations'),
+        ),
+        _QuickAction(
+          icon: Icons.account_balance_rounded,
+          label: 'Goals',
+          color: Colors.orange,
+          onTap: () => context.push('/goals'),
+        ),
+        _QuickAction(
+          icon: Icons.pie_chart_rounded,
+          label: 'Budgets',
+          color: Colors.green,
+          onTap: () => context.push('/budgets'),
+        ),
+        _QuickAction(
+          icon: Icons.analytics_rounded,
+          label: 'Analytics',
+          color: Colors.purple,
+          onTap: () => context.push('/analytics'),
+        ),
+      ],
+    );
+  }
+}
+
+class _QuickAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _QuickAction({required this.icon, required this.label, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(label, style: AppTextStyles.labelSmall),
       ],
     );
   }

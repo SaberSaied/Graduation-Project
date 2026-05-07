@@ -6,10 +6,10 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
-import '../../../../core/storage/secure_storage.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
+import '../providers/auth_provider.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -69,11 +69,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         }
 
         if (token != null) {
-          await SecureStorage().saveSessionToken(token);
+          await ref.read(authProvider.notifier).login(token);
         } else {
           throw Exception("Authentication successful, but session token was missing.");
         }
-        if (mounted) context.go('/dashboard');
       }
     } on DioException catch (e) {
       setState(() {
@@ -118,11 +117,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
       if (response.statusCode == 200) {
         final data = response.data;
-        final token = data['token'];
-
+        final token = data['token'] ?? data['session']?['token'];
         if (token != null) {
-          await SecureStorage().saveSessionToken(token);
-          if (mounted) context.go('/dashboard');
+          await ref.read(authProvider.notifier).login(token);
         } else {
           throw Exception("Authentication successful, but backend session token was missing.");
         }

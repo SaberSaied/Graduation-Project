@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/theme/theme_provider.dart';
-import '../../../../core/storage/secure_storage.dart';
 import '../../../../shared/widgets/confirmation_dialog.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -76,8 +76,7 @@ class SettingsPage extends ConsumerWidget {
               );
 
               if (confirm == true) {
-                await SecureStorage().clearAll();
-                if (context.mounted) context.go('/auth/login');
+                await ref.read(authProvider.notifier).logout();
               }
             },
           ),

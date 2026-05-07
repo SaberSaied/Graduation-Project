@@ -28,6 +28,7 @@ class DraggableDashboardCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final trailingWidget = trailing;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -102,7 +103,8 @@ class DraggableDashboardCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                        if (trailing != null) trailing!,
+                        // ignore: use_null_aware_elements
+                        if (trailingWidget != null) trailingWidget,
                         Icon(
                           isCollapsed ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
                           color: Colors.grey,

@@ -36,8 +36,8 @@ export async function executeBatchActions(userId: string, actions: AIAction[]) {
               data: {
                 userId,
                 name: action.data.category,
-                icon: '📁',
-                color: '#9E9E9E',
+                icon: action.data.categoryIcon || '📁',
+                color: action.data.categoryColor || '#9E9E9E',
                 type: action.data.type,
               },
             });

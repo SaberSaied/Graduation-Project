@@ -12,7 +12,6 @@ import '../widgets/insights_widget.dart';
 import '../widgets/unified_add_dialog.dart';
 import '../widgets/financial_chart_widget.dart';
 import 'package:go_router/go_router.dart';
-import '../../../dashboard/presentation/providers/dashboard_provider.dart';
 
 class FinancialPlanningPage extends ConsumerWidget {
   const FinancialPlanningPage({super.key});

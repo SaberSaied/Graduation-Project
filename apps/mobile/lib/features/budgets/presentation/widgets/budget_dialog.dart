@@ -5,8 +5,6 @@ import '../../domain/models/budget_model.dart';
 import '../providers/budgets_provider.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
-import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_text_styles.dart';
 
 class BudgetDialog extends ConsumerStatefulWidget {
   final Budget? budget;
@@ -48,7 +46,7 @@ class _BudgetDialogState extends ConsumerState<BudgetDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             DropdownButtonFormField<String>(
-              value: _selectedCategoryId,
+              initialValue: _selectedCategoryId,
               decoration: const InputDecoration(labelText: 'Category'),
               items: categoriesState.expenseCategories
                   .map((c) => DropdownMenuItem(value: c.id, child: Text('${c.icon} ${c.name}')))
@@ -65,7 +63,7 @@ class _BudgetDialogState extends ConsumerState<BudgetDialog> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<BudgetPeriod>(
-              value: _selectedPeriod,
+              initialValue: _selectedPeriod,
               decoration: const InputDecoration(labelText: 'Period'),
               items: BudgetPeriod.values
                   .map((p) => DropdownMenuItem(value: p, child: Text(p.name)))

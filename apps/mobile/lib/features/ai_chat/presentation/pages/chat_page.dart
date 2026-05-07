@@ -5,18 +5,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
-import 'package:dio/dio.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/network/network_providers.dart';
-import '../../../../core/constants/api_constants.dart';
+import '../providers/chat_provider.dart';
 
-class ChatMessage {
-  final String content;
-  final bool isUser;
-  final DateTime timestamp;
-  ChatMessage({required this.content, required this.isUser, DateTime? timestamp})
-      : timestamp = timestamp ?? DateTime.now();
-}
+// ChatMessage moved to providers/chat_provider.dart
 
 class ChatPage extends ConsumerStatefulWidget {
   const ChatPage({super.key});
@@ -28,9 +20,7 @@ class ChatPage extends ConsumerStatefulWidget {
 class _ChatPageState extends ConsumerState<ChatPage> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
-  final List<ChatMessage> _messages = [];
-  String? _sessionId;
-  bool _isLoading = false;
+  // State moved to chatProvider
 
   final _imagePicker = ImagePicker();
   final _audioRecorder = AudioRecorder();
@@ -40,10 +30,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   @override
   void initState() {
     super.initState();
-    _messages.add(ChatMessage(
-      content: "Hi! I'm FinanceAI 🤖\n\nI can help you:\n- Understand your spending patterns\n- Give saving tips based on your data\n- Add transactions via natural language (text or voice)\n- Analyze receipts and bills from photos\n- Answer financial questions\n\nHow can I help you today?",
-      isUser: false,
-    ));
+    // Initial message handled by chatProvider
   }
 
   @override
@@ -83,83 +70,21 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     final image = _selectedImage;
     
     if (text.isEmpty && image == null && audioPath == null) return;
-    if (_isLoading) return;
-
-    setState(() {
-      if (text.isNotEmpty) _messages.add(ChatMessage(content: text, isUser: true));
-      if (image != null) _messages.add(ChatMessage(content: '📷 Image attached', isUser: true));
-      if (audioPath != null) _messages.add(ChatMessage(content: '🎤 Voice message', isUser: true));
-      _isLoading = true;
-      _selectedImage = null;
-    });
     
+    final chatState = ref.read(chatProvider);
+    if (chatState.isLoading) return;
+
     _controller.clear();
+    setState(() => _selectedImage = null);
     _scrollToBottom();
 
-    try {
-      final client = ref.read(dioClientProvider);
-      
-      final formData = FormData.fromMap({
-        'message': text,
-        'sessionId': _sessionId,
-      });
-
-      if (image != null) {
-        formData.files.add(MapEntry(
-          'file',
-          await MultipartFile.fromFile(image.path, filename: 'image.jpg'),
-        ));
-      } else if (audioPath != null) {
-        formData.files.add(MapEntry(
-          'file',
-          await MultipartFile.fromFile(audioPath, filename: 'audio.m4a'),
-        ));
-      }
-
-      final response = await client.post(ApiConstants.aiChat, data: formData);
-
-      final data = response.data['data'];
-      _sessionId = data['sessionId'];
-      final aiMessage = data['message'] ?? 'I couldn\'t process that request.';
-
-      setState(() {
-        _messages.add(ChatMessage(content: aiMessage, isUser: false));
-      });
-
-      // Check for action completion
-      if (data['action'] != null) {
-        final actionType = data['action']['type'];
-        String successText = '✅ Action completed successfully!';
-        
-        if (actionType == 'ADD_TRANSACTION') {
-          successText = '✅ Transaction added successfully!';
-        } else if (actionType == 'ADD_CATEGORY') {
-          successText = '✅ Category created successfully!';
-        } else if (actionType == 'ADD_BUDGET') {
-          successText = '✅ Budget set successfully!';
-        } else if (actionType == 'ADD_GOAL') {
-          successText = '✅ Goal created successfully!';
-        }
-
-        setState(() {
-          _messages.add(ChatMessage(
-            content: successText,
-            isUser: false,
-          ));
-        });
-      }
-    } catch (e) {
-      debugPrint('AI Chat Error: $e');
-      setState(() {
-        _messages.add(ChatMessage(
-          content: '❌ Sorry, I encountered an error. Please try again.',
-          isUser: false,
-        ));
-      });
-    } finally {
-      setState(() => _isLoading = false);
-      _scrollToBottom();
-    }
+    await ref.read(chatProvider.notifier).sendMessage(
+      text: text,
+      image: image,
+      audioPath: audioPath,
+    );
+    
+    _scrollToBottom();
   }
 
   Future<void> _sendMessage() => _sendMultimodalMessage();
@@ -179,6 +104,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final chatState = ref.watch(chatProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -204,12 +130,12 @@ class _ChatPageState extends ConsumerState<ChatPage> {
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.all(16),
-              itemCount: _messages.length + (_isLoading ? 1 : 0),
+              itemCount: chatState.messages.length + (chatState.isLoading ? 1 : 0),
               itemBuilder: (context, index) {
-                if (index == _messages.length) {
+                if (index == chatState.messages.length) {
                   return _TypingIndicator(isDark: isDark);
                 }
-                return _ChatBubble(message: _messages[index], isDark: isDark);
+                return _ChatBubble(message: chatState.messages[index], isDark: isDark);
               },
             ),
           ),
@@ -259,11 +185,11 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                 Row(
                   children: [
                     IconButton(
-                      onPressed: _isLoading ? null : _pickImage,
+                      onPressed: chatState.isLoading ? null : _pickImage,
                       icon: Icon(Icons.image_outlined, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
                     ),
                     IconButton(
-                      onPressed: _isLoading ? null : _toggleRecording,
+                      onPressed: chatState.isLoading ? null : _toggleRecording,
                       icon: Icon(
                         _isRecording ? Icons.stop_circle : Icons.mic_none_rounded,
                         color: _isRecording ? Colors.red : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
@@ -290,7 +216,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                     ),
                     const SizedBox(width: 4),
                     IconButton(
-                      onPressed: _isLoading ? null : _sendMessage,
+                      onPressed: chatState.isLoading ? null : _sendMessage,
                       icon: Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(

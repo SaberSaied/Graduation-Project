@@ -57,6 +57,14 @@ class DioClient {
     return _dio.patch(path, data: data);
   }
 
+  // PUT
+  Future<Response> put(
+    String path, {
+    dynamic data,
+  }) async {
+    return _dio.put(path, data: data);
+  }
+
   // DELETE
   Future<Response> delete(String path) async {
     return _dio.delete(path);

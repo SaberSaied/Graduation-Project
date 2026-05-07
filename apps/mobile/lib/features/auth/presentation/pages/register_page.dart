@@ -5,10 +5,10 @@ import 'package:dio/dio.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
-import '../../../../core/storage/secure_storage.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
+import '../providers/auth_provider.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
@@ -74,11 +74,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         }
 
         if (token != null) {
-          await SecureStorage().saveSessionToken(token);
+          await ref.read(authProvider.notifier).login(token);
         } else {
           throw Exception("Authentication successful, but session token was missing.");
         }
-        if (mounted) context.go('/dashboard');
       }
     } on DioException catch (e) {
       setState(() {

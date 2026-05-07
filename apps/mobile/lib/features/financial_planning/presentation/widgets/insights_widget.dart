@@ -25,8 +25,11 @@ class InsightsWidget extends ConsumerWidget {
         double healthScore = 100.0;
         healthScore -= (overBudgets * 15); // -15 for each over budget
         healthScore -= (nearBudgets * 5); // -5 for each near limit
-        if (savingsRate < 10) healthScore -= 20;
-        else if (savingsRate < 20) healthScore -= 10;
+        if (savingsRate < 10) {
+          healthScore -= 20;
+        } else if (savingsRate < 20) {
+          healthScore -= 10;
+        }
         healthScore = healthScore.clamp(0, 100);
 
         final scoreColor = healthScore > 80 ? AppColors.income : (healthScore > 50 ? Colors.orange : AppColors.expense);

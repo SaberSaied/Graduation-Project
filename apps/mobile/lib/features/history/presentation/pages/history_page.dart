@@ -75,7 +75,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
                           count: (stats['data']['transactionCount'] as num).toInt(),
                         ),
                         loading: () => const SizedBox(height: 150, child: Center(child: CircularProgressIndicator())),
-                        error: (_, __) => const SizedBox.shrink(),
+                        error: (_, _) => const SizedBox.shrink(),
                       ),
                     ),
 

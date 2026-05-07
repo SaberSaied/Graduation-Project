@@ -6,12 +6,9 @@ import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../shared/widgets/error_widget.dart';
 import '../../../../shared/widgets/empty_state_widget.dart';
-import '../../../../shared/widgets/app_button.dart';
-import '../../../../shared/widgets/app_text_field.dart';
 import '../../domain/models/budget_model.dart';
 import '../providers/budgets_provider.dart';
 import '../widgets/budget_dialog.dart';
-import '../../../categories/presentation/providers/categories_provider.dart';
 
 class BudgetsPage extends ConsumerStatefulWidget {
   const BudgetsPage({super.key});

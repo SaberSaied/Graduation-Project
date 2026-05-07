@@ -24,6 +24,8 @@ model User {
   goals         Goal[]
   notifications Notification[]
   transactions  Transaction[]
+  obligations   FinancialObligation[]
+  reminders     BillReminder[]
 
   @@map("users")
 }
@@ -39,6 +41,7 @@ model Category {
   createdAt    DateTime      @default(now())
   budgets      Budget[]
   transactions Transaction[]
+  obligations  FinancialObligation[]
   user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, type])
@@ -65,6 +68,7 @@ model Transaction {
   user                 User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   goalContribution GoalContribution?
+  obligationPayment ObligationPayment?
 
   @@index([userId, date])
   @@index([userId, type])
@@ -209,4 +213,95 @@ enum NotificationType {
 enum MessageRole {
   USER
   ASSISTANT
+}
+
+model FinancialObligation {
+  id              String           @id @default(cuid())
+  userId          String
+  categoryId      String?
+  title           String
+  description     String?
+  amount          Float
+  currency        String
+  type            ObligationType
+  status          ObligationStatus @default(UPCOMING)
+  dueDate         DateTime?
+  isRecurring     Boolean          @default(false)
+  recurringType   RecurringType?
+  startDate       DateTime         @default(now())
+  endDate         DateTime?
+  
+  // Subscription specific
+  autoRenew       Boolean?         @default(true)
+  
+  // Debt/Loan specific
+  totalAmount     Float?           
+  remainingAmount Float?           
+  interestRate    Float?           
+  lenderInfo      String?
+  
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category        Category?        @relation(fields: [categoryId], references: [id])
+  reminders       BillReminder[]
+  payments        ObligationPayment[]
+
+  @@map("financial_obligations")
+}
+
+model BillReminder {
+  id              String           @id @default(cuid())
+  obligationId    String
+  userId          String
+  reminderDate    DateTime
+  isSent          Boolean          @default(false)
+  type            ReminderType     @default(IN_APP)
+  
+  obligation      FinancialObligation @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("bill_reminders")
+}
+
+model ObligationPayment {
+  id              String           @id @default(cuid())
+  obligationId    String
+  transactionId   String?          @unique
+  amount          Float
+  paymentDate     DateTime         @default(now())
+  status          PaymentStatus    @default(COMPLETED)
+  
+  obligation      FinancialObligation @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+  transaction     Transaction?        @relation(fields: [transactionId], references: [id])
+
+  @@map("obligation_payments")
+}
+
+enum ObligationStatus {
+  PAID
+  UPCOMING
+  OVERDUE
+  PAUSED
+}
+
+enum ObligationType {
+  SUBSCRIPTION
+  BILL
+  DEBT
+  LOAN
+  INSTALLMENT
+}
+
+enum ReminderType {
+  PUSH
+  IN_APP
+  DASHBOARD
+}
+
+enum PaymentStatus {
+  COMPLETED
+  PENDING
+  FAILED
 }

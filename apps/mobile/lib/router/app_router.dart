@@ -17,11 +17,44 @@ import '../features/settings/presentation/pages/categories_page.dart';
 import '../features/settings/presentation/pages/account_details_page.dart';
 import '../features/notifications/presentation/pages/notifications_page.dart';
 import '../features/financial_planning/presentation/pages/financial_planning_page.dart';
+import '../features/analytics/presentation/pages/predictions_page.dart';
+import '../features/financial_obligations/presentation/pages/financial_obligations_page.dart';
+import '../features/financial_obligations/presentation/pages/subscriptions_page.dart';
+import '../features/financial_obligations/presentation/pages/debts_page.dart';
+import '../features/financial_obligations/presentation/pages/loans_page.dart';
+import '../features/financial_obligations/presentation/pages/reminders_page.dart';
+import '../features/auth/presentation/providers/auth_provider.dart';
+import '../features/auth/presentation/pages/splash_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authProvider);
+
   return GoRouter(
-    initialLocation: '/auth/login',
+    initialLocation: '/dashboard',
+    redirect: (context, state) {
+      final isAuthPage = state.uri.toString().startsWith('/auth');
+      
+      if (authState.status == AuthStatus.initial) {
+        return '/splash';
+      }
+      
+      final bool isLoggedIn = authState.status == AuthStatus.authenticated;
+      
+      if (!isLoggedIn && !isAuthPage) {
+        return '/auth/login';
+      }
+      
+      if (isLoggedIn && isAuthPage) {
+        return '/dashboard';
+      }
+      
+      return null;
+    },
     routes: [
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashPage(),
+      ),
       // ─── Auth Routes ──────────────────────────
       GoRoute(
         path: '/auth/login',
@@ -103,9 +136,39 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const NotificationsPage(),
       ),
       GoRoute(
+        path: '/analytics/predictions',
+        name: 'predictions',
+        builder: (context, state) => const PredictionsPage(),
+      ),
+      GoRoute(
         path: '/settings/account',
         name: 'account-details',
         builder: (context, state) => const AccountDetailsPage(),
+      ),
+      GoRoute(
+        path: '/obligations',
+        name: 'obligations',
+        builder: (context, state) => const FinancialObligationsPage(),
+      ),
+      GoRoute(
+        path: '/obligations/subscriptions',
+        name: 'subscriptions',
+        builder: (context, state) => const SubscriptionsPage(),
+      ),
+      GoRoute(
+        path: '/obligations/debts',
+        name: 'debts',
+        builder: (context, state) => const DebtsPage(),
+      ),
+      GoRoute(
+        path: '/obligations/loans',
+        name: 'loans',
+        builder: (context, state) => const LoansPage(),
+      ),
+      GoRoute(
+        path: '/obligations/reminders',
+        name: 'reminders',
+        builder: (context, state) => const RemindersPage(),
       ),
     ],
   );

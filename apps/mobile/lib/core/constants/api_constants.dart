@@ -61,6 +61,9 @@ class ApiConstants {
   static String get notificationsUnreadCount => '${baseUrl}notifications/unread-count';
   static String get notificationsReadAll => '${baseUrl}notifications/read-all';
 
+  // Predictions
+  static String get predictions => '${baseUrl}predictions';
+
   // Categories
   static String get categories => '${baseUrl}categories';
   static String category(String id) => '${baseUrl}categories/$id';

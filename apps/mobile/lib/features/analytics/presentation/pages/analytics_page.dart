@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -46,6 +47,8 @@ class AnalyticsPage extends ConsumerWidget {
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                _buildPredictionsEntryCard(context, isDark),
+                const SizedBox(height: 32),
                 _buildAIRecommendations(insights, isDark),
                 const SizedBox(height: 32),
                 Text('Spending Trends', style: AppTextStyles.headlineSmall),
@@ -229,6 +232,74 @@ class AnalyticsPage extends ConsumerWidget {
             );
           }),
       ],
+    );
+  }
+
+  Widget _buildPredictionsEntryCard(BuildContext context, bool isDark) {
+    return InkWell(
+      onTap: () => context.push('/analytics/predictions'),
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: LinearGradient(
+            colors: [
+              AppColors.primaryLight,
+              AppColors.primaryLight.withValues(alpha: 0.8),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryLight.withValues(alpha: 0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'AI Predictions',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Forecast your spending, track health score, and get AI insights.',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.auto_awesome,
+                color: Colors.white,
+                size: 28,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

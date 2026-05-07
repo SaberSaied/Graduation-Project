@@ -14,7 +14,6 @@ import '../../../goals/presentation/providers/goals_provider.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../../categories/domain/models/category_model.dart';
 import '../../../budgets/presentation/providers/budgets_provider.dart';
-import '../../../budgets/domain/models/budget_model.dart';
 import '../../../goals/domain/models/goal_model.dart';
 
 class AddTransactionPage extends ConsumerStatefulWidget {
@@ -326,7 +325,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                       );
                     }
                     return DropdownButtonFormField<String>(
-                      value: _budgetId,
+                      initialValue: _budgetId,
                       hint: const Text('Select a budget...'),
                       decoration: _dropdownDecoration(isDark),
                       items: [
@@ -352,7 +351,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                       return const Text('No active goals available.');
                     }
                     return DropdownButtonFormField<String>(
-                      value: _goalId,
+                      initialValue: _goalId,
                       hint: const Text('Select a goal...'),
                       decoration: _dropdownDecoration(isDark),
                       items: [
