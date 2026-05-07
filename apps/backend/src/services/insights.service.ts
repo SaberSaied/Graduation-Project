@@ -27,7 +27,7 @@ export async function generateInsights(userId: string): Promise<Insight[]> {
         include: { category: true },
       }),
       prisma.budget.findMany({
-        where: { userId, month: currentMonth, year: currentYear },
+        where: { userId, month: currentMonth, year: currentYear } as any,
         include: { category: true },
       }),
       prisma.goal.findMany({
@@ -65,7 +65,7 @@ export async function generateInsights(userId: string): Promise<Insight[]> {
       const spent = transactions
         .filter(t => t.type === 'EXPENSE' && t.categoryId === b.categoryId)
         .reduce((sum, t) => sum + t.amountInBaseCurrency, 0);
-      return `- ${b.category.name}: spent ${spent.toFixed(2)} / limit ${b.amount.toFixed(2)}`;
+      return `- ${(b as any).category.name}: spent ${spent.toFixed(2)} / limit ${b.amount.toFixed(2)}`;
     }).join('\n');
 
     const goalsStr = goals.map(g => `- ${g.title}: ${g.savedAmount}/${g.targetAmount} (Progress: ${((g.savedAmount/g.targetAmount)*100).toFixed(0)}%)`).join('\n');

@@ -301,7 +301,7 @@ export async function processMessage(userId: string, message: string, sessionId?
           title: parsed.data.title,
           targetAmount: Number(parsed.data.targetAmount),
           currency: parsed.data.currency,
-          deadline: parsed.data.deadline ? new Date(parsed.data.deadline) : null,
+          deadline: parsed.data.deadline || null,
           description: parsed.data.description,
           icon: parsed.data.icon || '🎯',
           color: parsed.data.color || '#2196F3',
@@ -376,7 +376,7 @@ export async function simulateTransactionImpact(
     prisma.user.findUnique({ where: { id: userId } }),
     prisma.category.findUnique({ where: { id: data.categoryId } }),
     prisma.budget.findFirst({
-      where: { userId, categoryId: data.categoryId, month: now.getMonth() + 1, year: now.getFullYear() },
+      where: { userId, categoryId: data.categoryId, month: now.getMonth() + 1, year: now.getFullYear() } as any,
     }),
     data.goalId ? prisma.goal.findFirst({ where: { id: data.goalId, userId } }) : Promise.resolve(null),
   ]);
@@ -395,8 +395,12 @@ export async function simulateTransactionImpact(
 
   let budgetStatus = 'No budget set for this category.';
   if (budget) {
-    const isOver = newSpent > budget.amount;
-    budgetStatus = `Budget limit is ${budget.amount}. Currently spent: ${currentSpent}. Adding ${data.amount} will make total spent ${newSpent}. ${isOver ? 'This puts you OVER budget!' : 'This keeps you UNDER budget.'}`;
+    const b = budget as any;
+    const isOver = newSpent > b.amount;
+    budgetStatus = `Budget limit is ${b.amount}. Currently spent: ${currentSpent}. Adding ${data.amount} will make total spent ${newSpent}. ${isOver ? 'This puts you OVER budget!' : 'This keeps you UNDER budget.'}`;
+    if (b.category?.name) {
+      budgetStatus = `Budget limit for ${b.category.name} is ${b.amount}. Currently spent: ${currentSpent}. Adding ${data.amount} will make total spent ${newSpent}. ${isOver ? 'This puts you OVER budget!' : 'This keeps you UNDER budget.'}`;
+    }
   }
 
   let goalStatus = 'No related goal selected.';

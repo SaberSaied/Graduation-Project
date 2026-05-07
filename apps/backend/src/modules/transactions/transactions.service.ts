@@ -152,10 +152,13 @@ export async function createTransaction(
     const month = d.getMonth() + 1;
     const year = d.getFullYear();
 
-    const budget = await prisma.budget.findUnique({
+    const budget = await prisma.budget.findFirst({
       where: {
-        userId_categoryId_month_year: { userId, categoryId: data.categoryId, month, year },
-      },
+        month,
+        year,
+        userId,
+        categoryId: data.categoryId,
+      } as any,
     });
 
     if (budget) {
@@ -172,7 +175,7 @@ export async function createTransaction(
           year,
           amount: convertedAmount,
           currency: user.currency,
-        },
+        } as any,
       });
     }
   }
@@ -332,10 +335,13 @@ async function checkBudgetAlert(userId: string, categoryId: string) {
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
 
-  const budget = await prisma.budget.findUnique({
+  const budget = await prisma.budget.findFirst({
     where: {
-      userId_categoryId_month_year: { userId, categoryId, month, year },
-    },
+      month,
+      year,
+      userId,
+      categoryId,
+    } as any,
     include: { category: true },
   });
 
@@ -363,7 +369,7 @@ async function checkBudgetAlert(userId: string, categoryId: string) {
         userId,
         type: 'OVERSPEND_WARNING',
         title: '🚨 Budget Exceeded',
-        message: `You've exceeded your ${budget.category.name} budget by ${(totalSpent - budget.amount).toFixed(2)}.`,
+        message: `You've exceeded your ${(budget as any).category.name} budget by ${(totalSpent - budget.amount).toFixed(2)}.`,
         metadata: { budgetId: budget.id, categoryId, usagePercent },
       },
     });
@@ -373,7 +379,7 @@ async function checkBudgetAlert(userId: string, categoryId: string) {
         userId,
         type: 'BUDGET_ALERT',
         title: '⚠️ Budget Alert',
-        message: `You've used ${usagePercent.toFixed(0)}% of your ${budget.category.name} budget.`,
+        message: `You've used ${usagePercent.toFixed(0)}% of your ${(budget as any).category.name} budget.`,
         metadata: { budgetId: budget.id, categoryId, usagePercent },
       },
     });

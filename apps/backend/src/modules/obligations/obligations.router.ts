@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { ObligationsController } from './obligations.controller';
 import { requireAuth } from '../../middleware/auth.middleware';
 
-const router = Router();
+const router: Router = Router();
 const controller = new ObligationsController();
 
 router.use(requireAuth);
