@@ -1,6 +1,6 @@
 {
-    "name": "finance_manager",
-    "short_name": "finance_manager",
+    "name": "Smart Finance AI",
+    "short_name": "Smart Finance AI",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

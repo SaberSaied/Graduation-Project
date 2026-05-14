@@ -106,133 +106,153 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final chatState = ref.watch(chatProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 20),
-            ),
-            const SizedBox(width: 12),
-            const Text('FinanceAI'),
-          ],
-        ),
-      ),
-      body: Column(
-        children: [
-          // Messages
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16),
-              itemCount: chatState.messages.length + (chatState.isLoading ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index == chatState.messages.length) {
-                  return _TypingIndicator(isDark: isDark);
-                }
-                return _ChatBubble(message: chatState.messages[index], isDark: isDark);
-              },
-            ),
+    return Column(
+      children: [
+        // Custom Header (replaces AppBar)
+        Container(
+          padding: EdgeInsets.only(
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 16,
+            right: 16,
+            bottom: 12,
           ),
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'FinanceAI',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+        // Messages
+        Expanded(
+          child: ListView.builder(
+            controller: _scrollController,
+            padding: const EdgeInsets.all(16),
+            itemCount: chatState.messages.length + (chatState.isLoading ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index == chatState.messages.length) {
+                return _TypingIndicator(isDark: isDark);
+              }
+              return _ChatBubble(message: chatState.messages[index], isDark: isDark);
+            },
+          ),
+        ),
 
-          // Input bar
-          Container(
-            padding: EdgeInsets.only(
-              left: 8, right: 8, top: 8,
-              bottom: MediaQuery.of(context).padding.bottom + 8,
-            ),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-              border: Border(top: BorderSide(color: isDark ? AppColors.dividerDark : AppColors.dividerLight)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_selectedImage != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8, left: 8),
-                    child: Row(
-                      children: [
-                        Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.file(_selectedImage!, width: 60, height: 60, fit: BoxFit.cover),
-                            ),
-                            Positioned(
-                              top: -10,
-                              right: -10,
-                              child: GestureDetector(
-                                onTap: () => setState(() => _selectedImage = null),
-                                child: Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                                  child: const Icon(Icons.close, color: Colors.white, size: 16),
-                                ),
+        // Input bar
+        Container(
+          padding: EdgeInsets.only(
+            left: 8,
+            right: 8,
+            top: 8,
+            bottom: MediaQuery.of(context).padding.bottom + 8,
+          ),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+            border: Border(top: BorderSide(color: isDark ? AppColors.dividerDark : AppColors.dividerLight)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_selectedImage != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8, left: 8),
+                  child: Row(
+                    children: [
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.file(_selectedImage!, width: 60, height: 60, fit: BoxFit.cover),
+                          ),
+                          Positioned(
+                            top: -10,
+                            right: -10,
+                            child: GestureDetector(
+                              onTap: () => setState(() => _selectedImage = null),
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                                child: const Icon(Icons.close, color: Colors.white, size: 16),
                               ),
                             ),
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: chatState.isLoading ? null : _pickImage,
+                    icon: Icon(Icons.image_outlined, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                  ),
+                  IconButton(
+                    onPressed: chatState.isLoading ? null : _toggleRecording,
+                    icon: Icon(
+                      _isRecording ? Icons.stop_circle : Icons.mic_none_rounded,
+                      color: _isRecording ? Colors.red : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
                     ),
                   ),
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: chatState.isLoading ? null : _pickImage,
-                      icon: Icon(Icons.image_outlined, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                    ),
-                    IconButton(
-                      onPressed: chatState.isLoading ? null : _toggleRecording,
-                      icon: Icon(
-                        _isRecording ? Icons.stop_circle : Icons.mic_none_rounded,
-                        color: _isRecording ? Colors.red : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                      ),
-                    ),
-                    Expanded(
-                      child: TextField(
-                        controller: _controller,
-                        textInputAction: TextInputAction.send,
-                        onSubmitted: (_) => _sendMessage(),
-                        maxLines: 4,
-                        minLines: 1,
-                        decoration: InputDecoration(
-                          hintText: _isRecording ? 'Recording...' : 'Ask me anything...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(24),
-                            borderSide: BorderSide.none,
-                          ),
-                          filled: true,
-                          fillColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) => _sendMessage(),
+                      maxLines: 4,
+                      minLines: 1,
+                      decoration: InputDecoration(
+                        hintText: _isRecording ? 'Recording...' : 'Ask me anything...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide.none,
                         ),
+                        filled: true,
+                        fillColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       ),
                     ),
-                    const SizedBox(width: 4),
-                    IconButton(
-                      onPressed: chatState.isLoading ? null : _sendMessage,
-                      icon: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    onPressed: chatState.isLoading ? null : _sendMessage,
+                    icon: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                        shape: BoxShape.circle,
                       ),
+                      child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
                     ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

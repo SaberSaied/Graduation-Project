@@ -7,6 +7,8 @@ export const createBudgetSchema = z.object({
   period: z.enum(['WEEKLY', 'MONTHLY', 'CUSTOM']).default('MONTHLY'),
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
+  month: z.number().int().min(1).max(12).optional(),
+  year: z.number().int().min(2000).max(2100).optional(),
   alertThreshold: z.number().min(0).max(1).default(0.8),
 });
 

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -174,9 +175,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   );
 });
 
-class MainShell extends StatelessWidget {
+class MainShell extends ConsumerStatefulWidget {
   final Widget child;
   const MainShell({super.key, required this.child});
+
+  @override
+  ConsumerState<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends ConsumerState<MainShell> {
+  // 1. Stable Scaffold Identity
+  // Using a GlobalKey ensures the Scaffold isn't disposed and recreated 
+  // unnecessarily during shell rebuilds, which is critical for preventing 
+  // the geometryOf() assertion error.
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   int _getIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
@@ -205,25 +217,39 @@ class MainShell extends StatelessWidget {
     final currentIndex = _getIndex(context);
     final location = GoRouterState.of(context).uri.toString();
     
-    // Hide FAB in AI Chat, Settings, Goals, and Analytics
-    final showFab = !location.startsWith('/ai-chat') && 
-                    !location.startsWith('/settings') &&
-                    !location.startsWith('/goals') &&
-                    !location.startsWith('/analytics');
+    // 2. Stable Visibility Logic
+    // We determine visibility but don't pass 'null' to the FAB slot if we can avoid it,
+    // as that triggers internal Scaffold geometry re-initialization.
+    final bool isFabRoute = !location.startsWith('/ai-chat') && 
+                            !location.startsWith('/settings') &&
+                            !location.startsWith('/goals') &&
+                            !location.startsWith('/analytics');
 
     return Scaffold(
-      body: child,
-      floatingActionButton: showFab 
-        ? FloatingActionButton(
-            heroTag: 'quick_add',
-            onPressed: () => context.push('/transactions/add'),
-            child: const Icon(Icons.add, size: 28),
-          )
-        : null,
+      key: _scaffoldKey, // Stabilize identity
+      body: widget.child,
+      // 3. Persistent FAB Slot
+      // We keep the FAB widget in the slot but use AnimatedScale/Opacity 
+      // to hide it. This prevents the Scaffold from recalculating floating 
+      // geometry from scratch every time you navigate.
+      floatingActionButton: AnimatedScale(
+        scale: isFabRoute ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutBack,
+        child: FloatingActionButton(
+          onPressed: isFabRoute ? () => context.push('/transactions/add') : null,
+          child: const Icon(Icons.add, size: 28),
+        ),
+      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
-        shape: showFab ? const CircularNotchedRectangle() : null,
-        notchMargin: 8,
+        // 4. Stable Shape
+        // Using a fixed shape (or none) consistently avoids the clipper 
+        // trying to find a "moving target" during geometry updates.
+        shape: isFabRoute ? const CircularNotchedRectangle() : null,
+        notchMargin: 8.0,
+        clipBehavior: Clip.antiAlias,
+        elevation: 8,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
@@ -239,7 +265,7 @@ class MainShell extends StatelessWidget {
               isSelected: currentIndex == 1,
               onTap: () => _onTap(context, 1),
             ),
-            if (showFab) const SizedBox(width: 48), // Space for FAB
+            const SizedBox(width: 48), // Space for FAB (always present for layout stability)
             _NavItem(
               icon: Icons.smart_toy_rounded,
               label: 'AI Chat',
@@ -279,7 +305,12 @@ class _NavItem extends StatelessWidget {
         : Theme.of(context).bottomNavigationBarTheme.unselectedItemColor;
 
     return InkWell(
-      onTap: onTap,
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted) onTap();
+        });
+      },
       borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),

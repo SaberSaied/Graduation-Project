@@ -23,18 +23,32 @@ export class ObligationsService {
   }
 
   async createObligation(userId: string, data: any) {
+    const { startDate, dueDate, ...rest } = data;
+    const createData: any = {
+      ...rest,
+      userId,
+      startDate: startDate ? new Date(startDate) : undefined,
+      dueDate: dueDate ? new Date(dueDate) : undefined,
+    };
+
+    if (createData.totalAmount && createData.remainingAmount === undefined) {
+      createData.remainingAmount = createData.totalAmount;
+    }
+
     return prisma.financialObligation.create({
-      data: {
-        ...data,
-        userId,
-      },
+      data: createData,
     });
   }
 
   async updateObligation(id: string, userId: string, data: any) {
+    const { startDate, dueDate, ...rest } = data;
+    const updateData: any = { ...rest };
+    if (startDate) updateData.startDate = new Date(startDate);
+    if (dueDate) updateData.dueDate = new Date(dueDate);
+
     return prisma.financialObligation.update({
       where: { id, userId },
-      data,
+      data: updateData,
     });
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 import '../../domain/models/financial_obligation.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
@@ -46,6 +47,23 @@ class _AddObligationDialogState extends ConsumerState<AddObligationDialog> {
     final actionState = ref.watch(obligationActionProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    ref.listen<AsyncValue<void>>(obligationActionProvider, (previous, next) {
+      if (next is AsyncError) {
+        String errorMessage = 'Failed to save obligation';
+        final error = next.error;
+        if (error is DioException) {
+          errorMessage = error.response?.data?['error'] ?? error.message ?? errorMessage;
+        } else {
+          errorMessage = error.toString();
+        }
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMessage), backgroundColor: AppColors.errorLight),
+          );
+        });
+      }
+    });
+
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
@@ -68,7 +86,12 @@ class _AddObligationDialogState extends ConsumerState<AddObligationDialog> {
                   children: [
                     Text('New Obligation', style: AppTextStyles.titleLarge.copyWith(fontWeight: FontWeight.bold)),
                     IconButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) Navigator.pop(context);
+                        });
+                      },
                       icon: const Icon(Icons.close_rounded),
                     ),
                   ],
@@ -285,7 +308,11 @@ class _AddObligationDialogState extends ConsumerState<AddObligationDialog> {
     await ref.read(obligationActionProvider.notifier).createObligation(data);
     
     if (mounted && !ref.read(obligationActionProvider).hasError) {
-      Navigator.pop(context);
+      // Fix for Linux MouseTracker and Scaffold geometry error:
+      FocusManager.instance.primaryFocus?.unfocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.pop(context);
+      });
     }
   }
 }

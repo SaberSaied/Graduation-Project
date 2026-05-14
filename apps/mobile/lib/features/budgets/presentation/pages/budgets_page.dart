@@ -344,7 +344,9 @@ class _BudgetCard extends ConsumerWidget {
               leading: const Icon(Icons.edit_outlined),
               title: const Text('Edit Budget'),
               onTap: () {
-                Navigator.pop(ctx);
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (ctx.mounted) Navigator.pop(ctx);
+                });
                 showDialog(context: context, builder: (ctx) => BudgetDialog(budget: budget));
               },
             ),
@@ -352,7 +354,9 @@ class _BudgetCard extends ConsumerWidget {
               leading: const Icon(Icons.delete_outline, color: Colors.red),
               title: const Text('Delete Budget', style: TextStyle(color: Colors.red)),
               onTap: () {
-                Navigator.pop(ctx);
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (ctx.mounted) Navigator.pop(ctx);
+                });
                 _confirmDelete(context, ref);
               },
             ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
+import '../../../../core/constants/app_colors.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../domain/models/budget_model.dart';
 import '../providers/budgets_provider.dart';
@@ -37,6 +39,23 @@ class _BudgetDialogState extends ConsumerState<BudgetDialog> {
   Widget build(BuildContext context) {
     final categoriesState = ref.watch(categoriesProvider);
     final actionState = ref.watch(budgetActionProvider);
+
+    ref.listen<AsyncValue<void>>(budgetActionProvider, (previous, next) {
+      if (next is AsyncError) {
+        String errorMessage = 'Failed to save budget';
+        final error = next.error;
+        if (error is DioException) {
+          errorMessage = error.response?.data?['error'] ?? error.message ?? errorMessage;
+        } else {
+          errorMessage = error.toString();
+        }
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMessage), backgroundColor: AppColors.errorLight),
+          );
+        });
+      }
+    });
 
     return AlertDialog(
       title: Text(widget.budget == null ? 'Control Spending' : 'Adjust Limit'),
@@ -82,7 +101,15 @@ class _BudgetDialogState extends ConsumerState<BudgetDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () {
+            FocusManager.instance.primaryFocus?.unfocus();
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) Navigator.pop(context);
+            });
+          },
+          child: const Text('Cancel'),
+        ),
         AppButton(
           text: 'Set Budget',
           isLoading: actionState.isLoading,
@@ -101,6 +128,8 @@ class _BudgetDialogState extends ConsumerState<BudgetDialog> {
       'period': _selectedPeriod.name.toUpperCase(),
       'alertThreshold': double.parse(_thresholdController.text) / 100,
       'currency': 'USD',
+      'month': DateTime.now().month,
+      'year': DateTime.now().year,
     };
 
     if (widget.budget == null) {
@@ -110,7 +139,11 @@ class _BudgetDialogState extends ConsumerState<BudgetDialog> {
     }
     
     if (mounted && !ref.read(budgetActionProvider).hasError) {
-      Navigator.pop(context);
+      // Fix for Linux MouseTracker and Scaffold geometry error:
+      FocusManager.instance.primaryFocus?.unfocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.pop(context);
+      });
     }
   }
 }

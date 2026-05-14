@@ -11,6 +11,7 @@ export const createTransactionSchema = z.object({
   isRecurring: z.boolean().default(false),
   recurringInterval: z.enum(['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY']).optional().nullable(),
   goalId: z.string().optional().nullable(),
+  budgetId: z.string().optional().nullable(),
 });
 
 export const updateTransactionSchema = z.object({

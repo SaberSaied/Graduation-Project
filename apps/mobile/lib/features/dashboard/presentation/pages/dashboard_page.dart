@@ -18,30 +18,21 @@ class DashboardPage extends ConsumerWidget {
     final dashboardAsync = ref.watch(dashboardProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () => context.push('/notifications'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => context.go('/settings'),
-          ),
-        ],
+    return dashboardAsync.when(
+      loading: () => const LoadingIndicator(message: 'Loading dashboard...'),
+      error: (e, _) => AppErrorWidget(
+        message: 'Failed to load dashboard',
+        onRetry: () => ref.invalidate(dashboardProvider),
       ),
-      body: RefreshIndicator(
-        onRefresh: () async => ref.invalidate(dashboardProvider),
-        child: dashboardAsync.when(
-          loading: () => const LoadingIndicator(message: 'Loading dashboard...'),
-          error: (e, _) => AppErrorWidget(
-            message: 'Failed to load dashboard',
-            onRetry: () => ref.invalidate(dashboardProvider),
-          ),
-          data: (data) => _DashboardContent(data: data, isDark: isDark),
-        ),
+      data: (data) => RefreshIndicator(
+        // Improved refresh logic: await the future to keep spinner active
+        onRefresh: () async {
+          ref.invalidate(dashboardProvider);
+          try {
+            await ref.read(dashboardProvider.future);
+          } catch (_) {}
+        },
+        child: _DashboardContent(data: data, isDark: isDark),
       ),
     );
   }
@@ -63,107 +54,128 @@ class _DashboardContent extends StatelessWidget {
     final budgetAlerts = List<Map<String, dynamic>>.from(data['budgetAlerts'] ?? []);
     final currency = 'USD'; // TODO: get from user profile
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        // Balance Card
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            gradient: AppColors.primaryGradient,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primaryLight.withValues(alpha: 0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Monthly Balance', style: AppTextStyles.bodyMedium.copyWith(color: Colors.white70)),
-              const SizedBox(height: 8),
-              Text(
-                CurrencyFormatter.format(balance, currency),
-                style: AppTextStyles.displayLarge.copyWith(color: Colors.white),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: _MiniStat(
-                      label: 'Income',
-                      value: CurrencyFormatter.formatCompact(totalIncome, currency),
-                      icon: Icons.arrow_downward_rounded,
-                      color: Colors.greenAccent,
-                    ),
-                  ),
-                  Container(width: 1, height: 40, color: Colors.white24),
-                  Expanded(
-                    child: _MiniStat(
-                      label: 'Expenses',
-                      value: CurrencyFormatter.formatCompact(totalExpenses, currency),
-                      icon: Icons.arrow_upward_rounded,
-                      color: Colors.redAccent,
-                    ),
-                  ),
-                  Container(width: 1, height: 40, color: Colors.white24),
-                  Expanded(
-                    child: _MiniStat(
-                      label: 'Saved',
-                      value: '$savingsRate%',
-                      icon: Icons.savings_rounded,
-                      color: Colors.amberAccent,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
-        _buildQuickActions(context),
-        const SizedBox(height: 24),
-
-        // Budget Alerts
-        if (budgetAlerts.isNotEmpty) ...[
-          Text('Budget Alerts', style: AppTextStyles.headlineSmall),
-          const SizedBox(height: 12),
-          ...budgetAlerts.map((alert) => _BudgetAlertCard(alert: alert, isDark: isDark)),
-          const SizedBox(height: 24),
-        ],
-
-        // Recent Transactions
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Recent Transactions', style: AppTextStyles.headlineSmall),
-            TextButton(
-              onPressed: () => GoRouter.of(context).go('/transactions'),
-              child: const Text('See All'),
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        SliverAppBar(
+          title: const Text('Dashboard'),
+          floating: true,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.notifications_outlined),
+              onPressed: () => context.push('/notifications'),
+            ),
+            IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              onPressed: () => context.go('/settings'),
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        if (recentTx.isEmpty)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Column(
+        SliverPadding(
+          padding: const EdgeInsets.all(16),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              // Balance Card
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primaryLight.withValues(alpha: 0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Monthly Balance', style: AppTextStyles.bodyMedium.copyWith(color: Colors.white70)),
+                    const SizedBox(height: 8),
+                    Text(
+                      CurrencyFormatter.format(balance, currency),
+                      style: AppTextStyles.displayLarge.copyWith(color: Colors.white),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _MiniStat(
+                            label: 'Income',
+                            value: CurrencyFormatter.formatCompact(totalIncome, currency),
+                            icon: Icons.arrow_downward_rounded,
+                            color: Colors.greenAccent,
+                          ),
+                        ),
+                        Container(width: 1, height: 40, color: Colors.white24),
+                        Expanded(
+                          child: _MiniStat(
+                            label: 'Expenses',
+                            value: CurrencyFormatter.formatCompact(totalExpenses, currency),
+                            icon: Icons.arrow_upward_rounded,
+                            color: Colors.redAccent,
+                          ),
+                        ),
+                        Container(width: 1, height: 40, color: Colors.white24),
+                        Expanded(
+                          child: _MiniStat(
+                            label: 'Saved',
+                            value: '$savingsRate%',
+                            icon: Icons.savings_rounded,
+                            color: Colors.amberAccent,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildQuickActions(context),
+              const SizedBox(height: 24),
+
+              // Budget Alerts
+              if (budgetAlerts.isNotEmpty) ...[
+                Text('Budget Alerts', style: AppTextStyles.headlineSmall),
+                const SizedBox(height: 12),
+                ...budgetAlerts.map((alert) => _BudgetAlertCard(alert: alert, isDark: isDark)),
+                const SizedBox(height: 24),
+              ],
+
+              // Recent Transactions
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(Icons.receipt_long_outlined, size: 48, color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)),
-                  const SizedBox(height: 12),
-                  const Text('No transactions yet', textAlign: TextAlign.center),
-                  const SizedBox(height: 4),
-                  Text('Tap + to add your first transaction', style: Theme.of(context).textTheme.bodySmall),
+                  Text('Recent Transactions', style: AppTextStyles.headlineSmall),
+                  TextButton(
+                    onPressed: () => GoRouter.of(context).go('/transactions'),
+                    child: const Text('See All'),
+                  ),
                 ],
               ),
-            ),
-          )
-        else
-          ...recentTx.map((tx) => _TransactionTile(tx: tx, isDark: isDark)),
+              const SizedBox(height: 8),
+              if (recentTx.isEmpty)
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      children: [
+                        Icon(Icons.receipt_long_outlined, size: 48, color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)),
+                        const SizedBox(height: 12),
+                        const Text('No transactions yet', textAlign: TextAlign.center),
+                        const SizedBox(height: 4),
+                        Text('Tap + to add your first transaction', style: Theme.of(context).textTheme.bodySmall),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                ...recentTx.map((tx) => _TransactionTile(tx: tx, isDark: isDark)),
+            ]),
+          ),
+        ),
       ],
     );
   }

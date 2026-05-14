@@ -15,73 +15,78 @@ class SettingsPage extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final themeMode = ref.watch(themeProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
-        children: [
-          // Account
-          ListTile(
-            leading: const Icon(Icons.person_outline),
-            title: const Text('Account Details'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push('/settings/account'),
-          ),
+    return CustomScrollView(
+      slivers: [
+        const SliverAppBar(
+          title: Text('Settings'),
+          floating: true,
+        ),
+        SliverList(
+          delegate: SliverChildListDelegate([
+            // Account
+            ListTile(
+              leading: const Icon(Icons.person_outline),
+              title: const Text('Account Details'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/settings/account'),
+            ),
 
-          // Theme
-          ListTile(
-            leading: Icon(isDark ? Icons.dark_mode : Icons.light_mode, color: AppColors.primaryLight),
-            title: const Text('Appearance'),
-            subtitle: Text(themeMode == ThemeMode.system ? 'System default' : (isDark ? 'Dark Theme' : 'Light Theme')),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showThemeDialog(context, ref, themeMode),
-          ),
+            // Theme
+            ListTile(
+              leading: Icon(isDark ? Icons.dark_mode : Icons.light_mode, color: AppColors.primaryLight),
+              title: const Text('Appearance'),
+              subtitle: Text(themeMode == ThemeMode.system ? 'System default' : (isDark ? 'Dark Theme' : 'Light Theme')),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _showThemeDialog(context, ref, themeMode),
+            ),
 
-          // History
-          ListTile(
-            leading: const Icon(Icons.history_rounded, color: AppColors.primaryLight),
-            title: const Text('Transaction History'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push('/transactions'),
-          ),
+            // History
+            ListTile(
+              leading: const Icon(Icons.history_rounded, color: AppColors.primaryLight),
+              title: const Text('Transaction History'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/transactions'),
+            ),
 
-          // Analytics
-          ListTile(
-            leading: const Icon(Icons.analytics_outlined, color: AppColors.primaryLight),
-            title: const Text('Analytics'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push('/analytics'),
-          ),
+            // Analytics
+            ListTile(
+              leading: const Icon(Icons.analytics_outlined, color: AppColors.primaryLight),
+              title: const Text('Analytics'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/analytics'),
+            ),
 
-          // Categories
-          ListTile(
-            leading: const Icon(Icons.category_outlined),
-            title: const Text('Manage Categories'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push('/settings/categories'),
-          ),
+            // Categories
+            ListTile(
+              leading: const Icon(Icons.category_outlined),
+              title: const Text('Manage Categories'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/settings/categories'),
+            ),
 
-          const Divider(),
+            const Divider(),
 
-          // Logout
-          ListTile(
-            leading: const Icon(Icons.logout, color: AppColors.errorLight),
-            title: const Text('Log Out', style: TextStyle(color: AppColors.errorLight)),
-            onTap: () async {
-              final confirm = await ConfirmationDialog.show(
-                context,
-                title: 'Log Out',
-                message: 'Are you sure you want to log out?',
-                confirmLabel: 'Log Out',
-                confirmColor: AppColors.errorLight,
-              );
+            // Logout
+            ListTile(
+              leading: const Icon(Icons.logout, color: AppColors.errorLight),
+              title: const Text('Log Out', style: TextStyle(color: AppColors.errorLight)),
+              onTap: () async {
+                final confirm = await ConfirmationDialog.show(
+                  context,
+                  title: 'Log Out',
+                  message: 'Are you sure you want to log out?',
+                  confirmLabel: 'Log Out',
+                  confirmColor: AppColors.errorLight,
+                );
 
-              if (confirm == true) {
-                await ref.read(authProvider.notifier).logout();
-              }
-            },
-          ),
-        ],
-      ),
+                if (confirm == true) {
+                  await ref.read(authProvider.notifier).logout();
+                }
+              },
+            ),
+          ]),
+        ),
+      ],
     );
   }
 
@@ -104,7 +109,9 @@ class SettingsPage extends ConsumerWidget {
                 isSelected: currentTheme == ThemeMode.system,
                 onTap: () {
                   ref.read(themeProvider.notifier).setTheme(ThemeMode.system);
-                  Navigator.pop(ctx);
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (ctx.mounted) Navigator.pop(ctx);
+                  });
                 },
               ),
               _ThemeOption(
@@ -113,7 +120,9 @@ class SettingsPage extends ConsumerWidget {
                 isSelected: currentTheme == ThemeMode.light,
                 onTap: () {
                   ref.read(themeProvider.notifier).setTheme(ThemeMode.light);
-                  Navigator.pop(ctx);
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (ctx.mounted) Navigator.pop(ctx);
+                  });
                 },
               ),
               _ThemeOption(
@@ -122,7 +131,9 @@ class SettingsPage extends ConsumerWidget {
                 isSelected: currentTheme == ThemeMode.dark,
                 onTap: () {
                   ref.read(themeProvider.notifier).setTheme(ThemeMode.dark);
-                  Navigator.pop(ctx);
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (ctx.mounted) Navigator.pop(ctx);
+                  });
                 },
               ),
             ],

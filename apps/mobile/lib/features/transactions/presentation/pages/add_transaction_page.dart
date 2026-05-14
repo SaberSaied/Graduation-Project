@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:dio/dio.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/network/network_providers.dart';
@@ -15,6 +16,7 @@ import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../../categories/domain/models/category_model.dart';
 import '../../../budgets/presentation/providers/budgets_provider.dart';
 import '../../../goals/domain/models/goal_model.dart';
+import '../../../dashboard/presentation/providers/dashboard_provider.dart';
 
 class AddTransactionPage extends ConsumerStatefulWidget {
   const AddTransactionPage({super.key});
@@ -68,26 +70,51 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
         'date': _date.toIso8601String(),
         'notes': _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
         'goalId': _goalId,
+        'budgetId': _budgetId,
       });
 
       if (mounted) {
         HapticFeedback.lightImpact();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${_type == 'INCOME' ? 'Income' : 'Expense'} added successfully!'),
-            backgroundColor: AppColors.income,
-          ),
-        );
-        context.pop();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${_type == 'INCOME' ? 'Income' : 'Expense'} added successfully!'),
+                backgroundColor: AppColors.income,
+              ),
+            );
+          }
+        });
+        
+        // Invalidate dashboard to show new data
+        // Using a microtask ensures the pop() happens first or at least 
+        // decoupled from the build phase of the current page.
+        Future.microtask(() => ref.invalidate(dashboardProvider));
+        
+        // Clear focus first
+        FocusManager.instance.primaryFocus?.unfocus();
+        
+        // Navigate away safely using GoRouter's pop
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) context.pop();
+        });
+        return; 
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to add transaction'), backgroundColor: AppColors.errorLight),
-        );
+      String errorMessage = 'Failed to add transaction';
+      if (e is DioException) {
+        errorMessage = e.response?.data?['error'] ?? e.message ?? errorMessage;
       }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMessage), backgroundColor: AppColors.errorLight),
+          );
+        }
+      });
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      // Only set state if we are still mounted AND haven't navigated away
+      if (mounted && _isLoading) setState(() => _isLoading = false);
     }
   }
 

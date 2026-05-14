@@ -21,89 +21,61 @@ class FinancialPlanningPage extends ConsumerWidget {
     final widgetConfigs = ref.watch(financialPlanningProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 120,
-            floating: true,
-            pinned: true,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                'Financial Planning',
-                style: AppTextStyles.headlineSmall.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black87,
-                ),
+    return CustomScrollView(
+      slivers: [
+        SliverAppBar(
+          expandedHeight: 120,
+          floating: true,
+          pinned: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          flexibleSpace: FlexibleSpaceBar(
+            title: Text(
+              'Financial Planning',
+              style: AppTextStyles.headlineSmall.copyWith(
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black87,
               ),
-              titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
             ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.settings_outlined),
-                onPressed: () => ref.read(financialPlanningProvider.notifier).resetLayout(),
-              ),
-            ],
+            titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
           ),
-          
-          SliverPadding(
-            padding: const EdgeInsets.only(bottom: 100),
-            sliver: SliverReorderableList(
-              itemCount: widgetConfigs.length,
-              itemBuilder: (context, index) {
-                final config = widgetConfigs[index];
-                if (!config.isVisible) return const SizedBox.shrink(key: ValueKey('hidden'));
-
-                return ReorderableDelayedDragStartListener(
-                  key: ValueKey(config.type),
-                  index: index,
-                  child: _buildWidgetByType(context, config, ref),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.add_circle_outline_rounded, color: AppColors.primary),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => const UnifiedAddDialog(),
                 );
               },
-              onReorder: (oldIndex, newIndex) {
-                ref.read(financialPlanningProvider.notifier).reorderWidgets(oldIndex, newIndex);
-              },
             ),
-          ),
-        ],
-      ),
-      floatingActionButton: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        height: 60,
-        decoration: BoxDecoration(
-          gradient: AppColors.primaryGradient,
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.4),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
+            IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              onPressed: () => ref.read(financialPlanningProvider.notifier).resetLayout(),
             ),
           ],
         ),
-        child: FloatingActionButton.extended(
-          onPressed: () {
-            showDialog(
-              context: context,
-              builder: (context) => const UnifiedAddDialog(),
-            );
-          },
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          icon: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
-          label: Text(
-            'New Plan',
-            style: AppTextStyles.labelLarge.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1,
-            ),
+        
+        SliverPadding(
+          padding: const EdgeInsets.only(bottom: 24),
+          sliver: SliverReorderableList(
+            itemCount: widgetConfigs.length,
+            itemBuilder: (context, index) {
+              final config = widgetConfigs[index];
+              if (!config.isVisible) return const SizedBox.shrink(key: ValueKey('hidden'));
+
+              return ReorderableDelayedDragStartListener(
+                key: ValueKey(config.type),
+                index: index,
+                child: _buildWidgetByType(context, config, ref),
+              );
+            },
+            onReorder: (oldIndex, newIndex) {
+              ref.read(financialPlanningProvider.notifier).reorderWidgets(oldIndex, newIndex);
+            },
           ),
         ),
-      ),
+      ],
     );
   }
 

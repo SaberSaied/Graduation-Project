@@ -139,7 +139,12 @@ class _HistoryFiltersSheetState extends ConsumerState<HistoryFiltersSheet> {
             width: double.infinity,
             height: 56,
             child: ElevatedButton(
-              onPressed: () => Navigator.pop(context, _currentFilter),
+              onPressed: () {
+                FocusManager.instance.primaryFocus?.unfocus();
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) Navigator.pop(context, _currentFilter);
+                });
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,

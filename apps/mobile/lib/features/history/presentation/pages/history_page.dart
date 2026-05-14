@@ -48,127 +48,121 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     final statsAsync = ref.watch(historyStatsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Sticky Header: Search & Filters summary
-            _buildHeader(context, ref, filter),
-            
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () async {
-                  ref.invalidate(historyStatsProvider);
-                  return ref.read(historyTransactionsProvider.notifier).fetchTransactions(refresh: true);
-                },
-                child: CustomScrollView(
-                  controller: _scrollController,
-                  slivers: [
-                    // Analytics Summary
-                    SliverToBoxAdapter(
-                      child: statsAsync.when(
-                        data: (stats) => HistoryAnalyticsHeader(
-                          totalIncome: (stats['data']['totalIncome'] as num).toDouble(),
-                          totalExpenses: (stats['data']['totalExpenses'] as num).toDouble(),
-                          balance: (stats['data']['netBalance'] as num).toDouble(),
-                          count: (stats['data']['transactionCount'] as num).toInt(),
-                        ),
-                        loading: () => const SizedBox(height: 150, child: Center(child: CircularProgressIndicator())),
-                        error: (_, _) => const SizedBox.shrink(),
-                      ),
+    return Column(
+      children: [
+        // Sticky Header: Search & Filters summary
+        _buildHeader(context, ref, filter),
+        
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(historyStatsProvider);
+              try {
+                await ref.read(historyTransactionsProvider.notifier).fetchTransactions(refresh: true);
+              } catch (_) {}
+            },
+            child: CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                // Analytics Summary
+                SliverToBoxAdapter(
+                  child: statsAsync.when(
+                    data: (stats) => HistoryAnalyticsHeader(
+                      totalIncome: (stats['data']['totalIncome'] as num).toDouble(),
+                      totalExpenses: (stats['data']['totalExpenses'] as num).toDouble(),
+                      balance: (stats['data']['netBalance'] as num).toDouble(),
+                      count: (stats['data']['transactionCount'] as num).toInt(),
                     ),
-
-                    // Quick Filter Chips
-                    SliverToBoxAdapter(
-                      child: _buildQuickFilters(ref, filter),
-                    ),
-
-                    // Transaction List
-                    if (state.isLoading && state.transactions.isEmpty)
-                      const SliverFillRemaining(child: LoadingIndicator())
-                    else if (state.transactions.isEmpty)
-                      const SliverFillRemaining(
-                        child: EmptyStateWidget(
-                          icon: Icons.history_rounded,
-                          title: 'No transactions found',
-                          subtitle: 'Try adjusting your filters or search terms',
-                        ),
-                      )
-                    else
-                      SliverPadding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              if (index == state.transactions.length) {
-                                return state.isLoadMore
-                                    ? const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator()))
-                                    : const SizedBox.shrink();
-                              }
-
-                              final tx = state.transactions[index];
-                              final date = DateTime.parse(tx['date']);
-                              
-                              // Grouping by date (Simplified)
-                              bool showHeader = false;
-                              if (index == 0) {
-                                showHeader = true;
-                              } else {
-                                final prevTx = state.transactions[index - 1];
-                                final prevDate = DateTime.parse(prevTx['date']);
-                                if (date.day != prevDate.day || date.month != prevDate.month || date.year != prevDate.year) {
-                                  showHeader = true;
-                                }
-                              }
-
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (showHeader)
-                                    Padding(
-                                      padding: const EdgeInsets.only(left: 8, top: 16, bottom: 8),
-                                      child: Text(
-                                        DateFormatter.formatDate(date),
-                                        style: AppTextStyles.labelMedium.copyWith(color: Colors.grey, fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                  HistoryTransactionCard(
-                                    transaction: tx,
-                                    onTap: () {
-                                      // Show details or edit
-                                    },
-                                  ),
-                                ],
-                              );
-                            },
-                            childCount: state.transactions.length + 1,
-                          ),
-                        ),
-                      ),
-                  ],
+                    loading: () => const SizedBox(height: 150, child: Center(child: CircularProgressIndicator())),
+                    error: (_, _) => const SizedBox.shrink(),
+                  ),
                 ),
-              ),
+
+                // Quick Filter Chips
+                SliverToBoxAdapter(
+                  child: _buildQuickFilters(ref, filter),
+                ),
+
+                // Transaction List
+                if (state.isLoading && state.transactions.isEmpty)
+                  const SliverFillRemaining(child: LoadingIndicator())
+                else if (state.transactions.isEmpty)
+                  const SliverFillRemaining(
+                    child: EmptyStateWidget(
+                      icon: Icons.history_rounded,
+                      title: 'No transactions found',
+                      subtitle: 'Try adjusting your filters or search terms',
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          if (index == state.transactions.length) {
+                            return state.isLoadMore
+                                ? const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator()))
+                                : const SizedBox.shrink();
+                          }
+
+                          final tx = state.transactions[index];
+                          final date = DateTime.parse(tx['date']);
+                          
+                          // Grouping by date (Simplified)
+                          bool showHeader = false;
+                          if (index == 0) {
+                            showHeader = true;
+                          } else {
+                            final prevTx = state.transactions[index - 1];
+                            final prevDate = DateTime.parse(prevTx['date']);
+                            if (date.day != prevDate.day || date.month != prevDate.month || date.year != prevDate.year) {
+                              showHeader = true;
+                            }
+                          }
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (showHeader)
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 8, top: 16, bottom: 8),
+                                  child: Text(
+                                    DateFormatter.formatDate(date),
+                                    style: AppTextStyles.labelMedium.copyWith(color: Colors.grey, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              HistoryTransactionCard(
+                                transaction: tx,
+                                onTap: () {
+                                  // Show details or edit
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                        childCount: state.transactions.length + 1,
+                      ),
+                    ),
+                  ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final newFilter = await showModalBottomSheet<HistoryFilter>(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (context) => HistoryFiltersSheet(initialFilter: filter),
-          );
-          if (newFilter != null) {
-            ref.read(historyFilterProvider.notifier).state = newFilter;
-          }
-        },
-        backgroundColor: AppColors.primary,
-        child: const Icon(Icons.tune_rounded, color: Colors.white),
-      ),
+      ],
     );
+  }
+
+  Future<void> _showFilterSheet(BuildContext context, HistoryFilter filter) async {
+    final newFilter = await showModalBottomSheet<HistoryFilter>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => HistoryFiltersSheet(initialFilter: filter),
+    );
+    if (newFilter != null && mounted) {
+      ref.read(historyFilterProvider.notifier).state = newFilter;
+    }
   }
 
   Widget _buildHeader(BuildContext context, WidgetRef ref, HistoryFilter filter) {
@@ -208,6 +202,14 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
                       contentPadding: EdgeInsets.symmetric(vertical: 14),
                     ),
                   ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              CircleAvatar(
+                backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                child: IconButton(
+                  icon: Icon(Icons.tune_rounded, size: 20, color: AppColors.primary),
+                  onPressed: () => _showFilterSheet(context, filter),
                 ),
               ),
               const SizedBox(width: 12),

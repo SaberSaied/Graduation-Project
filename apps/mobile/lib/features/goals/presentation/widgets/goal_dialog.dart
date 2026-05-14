@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
+import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../domain/models/goal_model.dart';
@@ -44,6 +46,23 @@ class _GoalDialogState extends ConsumerState<GoalDialog> {
   @override
   Widget build(BuildContext context) {
     final actionState = ref.watch(goalActionProvider);
+
+    ref.listen<AsyncValue<void>>(goalActionProvider, (previous, next) {
+      if (next is AsyncError) {
+        String errorMessage = 'Failed to save goal';
+        final error = next.error;
+        if (error is DioException) {
+          errorMessage = error.response?.data?['error'] ?? error.message ?? errorMessage;
+        } else {
+          errorMessage = error.toString();
+        }
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMessage), backgroundColor: AppColors.errorLight),
+          );
+        });
+      }
+    });
 
     return AlertDialog(
       title: Text(widget.goal == null ? 'Set Savings Goal' : 'Edit Goal'),
@@ -102,7 +121,15 @@ class _GoalDialogState extends ConsumerState<GoalDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () {
+            FocusManager.instance.primaryFocus?.unfocus();
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) Navigator.pop(context);
+            });
+          },
+          child: const Text('Cancel'),
+        ),
         AppButton(
           text: 'Save Goal',
           isLoading: actionState.isLoading,
@@ -120,7 +147,7 @@ class _GoalDialogState extends ConsumerState<GoalDialog> {
       'targetAmount': double.parse(_targetController.text),
       'autoSaveAmount': _autoSaveAmountController.text.isNotEmpty ? double.parse(_autoSaveAmountController.text) : null,
       'autoSavePercentage': _autoSavePercentController.text.isNotEmpty ? double.parse(_autoSavePercentController.text) : null,
-      'autoSaveFrequency': _selectedFrequency?.name,
+      'autoSaveFrequency': _selectedFrequency?.name.toUpperCase(),
       'icon': _selectedIcon,
       'currency': 'USD',
     };
@@ -132,7 +159,11 @@ class _GoalDialogState extends ConsumerState<GoalDialog> {
     }
 
     if (mounted && !ref.read(goalActionProvider).hasError) {
-      Navigator.pop(context);
+      // Fix for Linux MouseTracker and Scaffold geometry error:
+      FocusManager.instance.primaryFocus?.unfocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.pop(context);
+      });
     }
   }
 }

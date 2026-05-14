@@ -27,6 +27,8 @@ export async function createBudget(
     period: 'WEEKLY' | 'MONTHLY' | 'CUSTOM';
     startDate?: string;
     endDate?: string;
+    month?: number;
+    year?: number;
     alertThreshold?: number;
   }
 ) {
@@ -50,6 +52,8 @@ export async function updateBudget(
     period: 'WEEKLY' | 'MONTHLY' | 'CUSTOM';
     startDate: string;
     endDate: string;
+    month: number;
+    year: number;
     alertThreshold: number;
   }>
 ) {

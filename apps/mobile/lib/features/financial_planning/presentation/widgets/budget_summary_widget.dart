@@ -29,7 +29,7 @@ class BudgetSummaryWidget extends ConsumerWidget {
           child: Column(
             children: [
               ...topBudgets.map((status) {
-                final usage = status.usagePercent / 100;
+                final usage = ((status['usagePercent'] as num?)?.toDouble() ?? 0.0) / 100;
                 final isWarning = usage >= 0.8;
                 final isOver = usage >= 1.0;
 
@@ -42,13 +42,13 @@ class BudgetSummaryWidget extends ConsumerWidget {
                         children: [
                           Row(
                             children: [
-                              Text(status.categoryIcon, style: const TextStyle(fontSize: 16)),
+                              Text(status['categoryIcon'] ?? '💰', style: const TextStyle(fontSize: 16)),
                               const SizedBox(width: 8),
-                              Text(status.category, style: AppTextStyles.bodyMedium),
+                              Text(status['category'] ?? 'Budget', style: AppTextStyles.bodyMedium),
                             ],
                           ),
                           Text(
-                            '${status.usagePercent}%',
+                            '${status['usagePercent'] ?? 0}%',
                             style: AppTextStyles.labelLarge.copyWith(
                               color: isOver ? AppColors.expense : (isWarning ? Colors.orange : null),
                               fontWeight: FontWeight.bold,
@@ -71,11 +71,11 @@ class BudgetSummaryWidget extends ConsumerWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '${CurrencyFormatter.format((status.spent as num).toDouble(), 'USD')} spent',
+                            '${CurrencyFormatter.format(((status['spent'] as num?)?.toDouble() ?? 0.0), 'USD')} spent',
                             style: AppTextStyles.labelSmall,
                           ),
                           Text(
-                            'Limit: ${CurrencyFormatter.format((status.limit as num).toDouble(), 'USD')}',
+                            'Limit: ${CurrencyFormatter.format(((status['limit'] as num?)?.toDouble() ?? 0.0), 'USD')}',
                             style: AppTextStyles.labelSmall,
                           ),
                         ],

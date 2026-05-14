@@ -16,8 +16,11 @@ class InsightsWidget extends ConsumerWidget {
     return dashboardAsync.when(
       data: (data) {
         final budgets = budgetsAsync.value ?? [];
-        final overBudgets = budgets.where((b) => b.usagePercent >= 100).length;
-        final nearBudgets = budgets.where((b) => b.usagePercent >= 80 && b.usagePercent < 100).length;
+        final overBudgets = budgets.where((b) => ((b['usagePercent'] as num?)?.toDouble() ?? 0.0) >= 100).length;
+        final nearBudgets = budgets.where((b) {
+          final usage = (b['usagePercent'] as num?)?.toDouble() ?? 0.0;
+          return usage >= 80 && usage < 100;
+        }).length;
         
         final savingsRate = (data['savingsRate'] as num?)?.toDouble() ?? 0.0;
         
