@@ -43,7 +43,7 @@ dependencies:
   # AI Chat rendering
   flutter_markdown: ^0.7.6+2
   firebase_core: ^4.7.0
-  image_picker: ^1.2.1
+  image_picker: ^1.1.2
   record: ^6.1.0
   path_provider: ^2.1.2
 
