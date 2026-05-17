@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
-import 'package:finance_manager/core/utils/currency_formatter.dart';
-import 'package:finance_manager/features/dashboard/presentation/providers/dashboard_provider.dart';
+import 'package:smart_finance_ai/core/utils/currency_formatter.dart';
+import 'package:smart_finance_ai/features/dashboard/presentation/providers/dashboard_provider.dart';
 
 class MonthlySummaryWidget extends ConsumerWidget {
   const MonthlySummaryWidget({super.key});

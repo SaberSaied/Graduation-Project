@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:finance_manager/features/financial_planning/presentation/models/widget_layout_model.dart';
+import 'package:smart_finance_ai/features/financial_planning/presentation/models/widget_layout_model.dart';
 
 final financialPlanningProvider = StateNotifierProvider<FinancialPlanningNotifier, List<DashboardWidgetConfig>>((ref) {
   return FinancialPlanningNotifier();

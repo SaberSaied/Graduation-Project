@@ -46,7 +46,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     final state = ref.watch(historyTransactionsProvider);
     final filter = ref.watch(historyFilterProvider);
     final statsAsync = ref.watch(historyStatsProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+
 
     return Column(
       children: [
