@@ -10,12 +10,50 @@ import {
   subMonths
 } from 'date-fns';
 
+async function calculateSpent(userId: string, budget: any): Promise<number> {
+  const now = new Date();
+  let startDate: Date;
+  let endDate: Date;
+
+  if (budget.period === 'WEEKLY') {
+    startDate = startOfWeek(now);
+    endDate = endOfWeek(now);
+  } else if (budget.period === 'MONTHLY') {
+    const year = budget.year ?? now.getFullYear();
+    const month = budget.month ?? (now.getMonth() + 1);
+    startDate = new Date(year, month - 1, 1);
+    endDate = new Date(year, month, 0, 23, 59, 59, 999);
+  } else {
+    startDate = budget.startDate || startOfMonth(now);
+    endDate = budget.endDate || endOfMonth(now);
+  }
+
+  const spent = await prisma.transaction.aggregate({
+    where: {
+      userId,
+      categoryId: budget.categoryId,
+      type: 'EXPENSE',
+      date: { gte: startDate, lte: endDate },
+    },
+    _sum: { amountInBaseCurrency: true },
+  });
+
+  return Math.round((spent._sum.amountInBaseCurrency ?? 0) * 100) / 100;
+}
+
 export async function getBudgets(userId: string) {
-  return prisma.budget.findMany({
+  const budgets = await prisma.budget.findMany({
     where: { userId },
     include: { category: true },
     orderBy: { category: { name: 'asc' } },
   });
+
+  return Promise.all(
+    budgets.map(async (budget) => ({
+      ...budget,
+      spent: await calculateSpent(userId, budget),
+    }))
+  );
 }
 
 export async function createBudget(
@@ -32,8 +70,27 @@ export async function createBudget(
     alertThreshold?: number;
   }
 ) {
+  // Validate category type is EXPENSE
+  const category = await prisma.category.findFirst({
+    where: {
+      id: data.categoryId,
+      OR: [
+        { userId: null },
+        { userId },
+      ],
+    },
+  });
+
+  if (!category) {
+    throw new AppError('Category not found', 404);
+  }
+
+  if (category.type !== 'EXPENSE') {
+    throw new AppError('Budgets can only be created for EXPENSE categories', 400);
+  }
+
   const { startDate, endDate, ...rest } = data;
-  return prisma.budget.create({
+  const budget = await prisma.budget.create({
     data: { 
       userId, 
       ...rest,
@@ -42,6 +99,11 @@ export async function createBudget(
     } as any,
     include: { category: true },
   });
+
+  return {
+    ...budget,
+    spent: await calculateSpent(userId, budget),
+  };
 }
 
 export async function updateBudget(
@@ -62,11 +124,16 @@ export async function updateBudget(
   if (startDate) updateData.startDate = new Date(startDate);
   if (endDate) updateData.endDate = new Date(endDate);
 
-  return prisma.budget.update({
+  const budget = await prisma.budget.update({
     where: { id: budgetId },
     data: updateData,
     include: { category: true },
   });
+
+  return {
+    ...budget,
+    spent: await calculateSpent(userId, budget),
+  };
 }
 
 export async function deleteBudget(budgetId: string, userId: string) {
@@ -93,8 +160,10 @@ export async function getBudgetStatus(userId: string): Promise<BudgetStatus[]> {
       startDate = startOfWeek(now);
       endDate = endOfWeek(now);
     } else if (budget.period === 'MONTHLY') {
-      startDate = startOfMonth(now);
-      endDate = endOfMonth(now);
+      const year = budget.year ?? now.getFullYear();
+      const month = budget.month ?? (now.getMonth() + 1);
+      startDate = new Date(year, month - 1, 1);
+      endDate = new Date(year, month, 0, 23, 59, 59, 999);
     } else {
       startDate = budget.startDate || startOfMonth(now);
       endDate = budget.endDate || endOfMonth(now);

@@ -17,6 +17,7 @@ import '../../../categories/domain/models/category_model.dart';
 import '../../../budgets/presentation/providers/budgets_provider.dart';
 import '../../../goals/domain/models/goal_model.dart';
 import '../../../dashboard/presentation/providers/dashboard_provider.dart';
+import '../../../history/presentation/providers/history_provider.dart';
 
 class AddTransactionPage extends ConsumerStatefulWidget {
   const AddTransactionPage({super.key});
@@ -86,10 +87,15 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
           }
         });
         
-        // Invalidate dashboard to show new data
-        // Using a microtask ensures the pop() happens first or at least 
-        // decoupled from the build phase of the current page.
-        Future.microtask(() => ref.invalidate(dashboardProvider));
+        // Invalidate dashboard and all related lists/stats to show new data
+        Future.microtask(() {
+          ref.invalidate(dashboardProvider);
+          ref.invalidate(budgetsProvider);
+          ref.invalidate(budgetStatusProvider);
+          ref.invalidate(goalsProvider);
+          ref.invalidate(historyStatsProvider);
+          ref.invalidate(historyTransactionsProvider);
+        });
         
         // Clear focus first
         FocusManager.instance.primaryFocus?.unfocus();

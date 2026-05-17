@@ -132,17 +132,26 @@ class _BudgetDialogState extends ConsumerState<BudgetDialog> {
       'year': DateTime.now().year,
     };
 
+    final bool success;
     if (widget.budget == null) {
-      await ref.read(budgetActionProvider.notifier).createBudget(data);
+      success = await ref.read(budgetActionProvider.notifier).createBudget(data);
     } else {
-      await ref.read(budgetActionProvider.notifier).updateBudget(widget.budget!.id, data);
+      success = await ref.read(budgetActionProvider.notifier).updateBudget(widget.budget!.id, data);
     }
     
-    if (mounted && !ref.read(budgetActionProvider).hasError) {
+    if (success && mounted) {
       // Fix for Linux MouseTracker and Scaffold geometry error:
       FocusManager.instance.primaryFocus?.unfocus();
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) Navigator.pop(context);
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(widget.budget == null ? 'Budget created successfully!' : 'Budget updated successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       });
     }
   }

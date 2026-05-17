@@ -25,39 +25,45 @@ class BudgetNotifier extends StateNotifier<AsyncValue<void>> {
 
   BudgetNotifier(this._repository, this._ref) : super(const AsyncValue.data(null));
 
-  Future<void> createBudget(Map<String, dynamic> data) async {
+  Future<bool> createBudget(Map<String, dynamic> data) async {
     state = const AsyncValue.loading();
     try {
       await _repository.createBudget(data);
       _ref.invalidate(budgetsProvider);
       _ref.invalidate(budgetStatusProvider);
       state = const AsyncValue.data(null);
+      return true;
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
+      return false;
     }
   }
 
-  Future<void> updateBudget(String id, Map<String, dynamic> data) async {
+  Future<bool> updateBudget(String id, Map<String, dynamic> data) async {
     state = const AsyncValue.loading();
     try {
       await _repository.updateBudget(id, data);
       _ref.invalidate(budgetsProvider);
       _ref.invalidate(budgetStatusProvider);
       state = const AsyncValue.data(null);
+      return true;
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
+      return false;
     }
   }
 
-  Future<void> deleteBudget(String id) async {
+  Future<bool> deleteBudget(String id) async {
     state = const AsyncValue.loading();
     try {
       await _repository.deleteBudget(id);
       _ref.invalidate(budgetsProvider);
       _ref.invalidate(budgetStatusProvider);
       state = const AsyncValue.data(null);
+      return true;
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
+      return false;
     }
   }
 }

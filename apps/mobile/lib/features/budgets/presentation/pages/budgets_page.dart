@@ -344,9 +344,7 @@ class _BudgetCard extends ConsumerWidget {
               leading: const Icon(Icons.edit_outlined),
               title: const Text('Edit Budget'),
               onTap: () {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (ctx.mounted) Navigator.pop(ctx);
-                });
+                Navigator.pop(ctx); // Close sheet first
                 showDialog(context: context, builder: (ctx) => BudgetDialog(budget: budget));
               },
             ),
@@ -354,9 +352,7 @@ class _BudgetCard extends ConsumerWidget {
               leading: const Icon(Icons.delete_outline, color: Colors.red),
               title: const Text('Delete Budget', style: TextStyle(color: Colors.red)),
               onTap: () {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (ctx.mounted) Navigator.pop(ctx);
-                });
+                Navigator.pop(ctx); // Close sheet first
                 _confirmDelete(context, ref);
               },
             ),
@@ -375,9 +371,14 @@ class _BudgetCard extends ConsumerWidget {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(
-            onPressed: () {
-              ref.read(budgetActionProvider.notifier).deleteBudget(budget.id);
-              Navigator.pop(ctx);
+            onPressed: () async {
+              Navigator.pop(ctx); // Close confirmation dialog first
+              final success = await ref.read(budgetActionProvider.notifier).deleteBudget(budget.id);
+              if (success && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Budget deleted successfully!'), backgroundColor: Colors.green),
+                );
+              }
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),

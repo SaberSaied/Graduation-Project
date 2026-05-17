@@ -151,40 +151,6 @@ export async function createTransaction(
     }
   }
 
-  // Handle Budget increment on INCOME
-  if (data.type === 'INCOME') {
-    const d = new Date(data.date);
-    const month = d.getMonth() + 1;
-    const year = d.getFullYear();
-
-    const budget = await prisma.budget.findFirst({
-      where: {
-        month,
-        year,
-        userId,
-        categoryId: data.categoryId,
-      } as any,
-    });
-
-    if (budget) {
-      await prisma.budget.update({
-        where: { id: budget.id },
-        data: { amount: budget.amount + convertedAmount },
-      });
-    } else {
-      await prisma.budget.create({
-        data: {
-          userId,
-          categoryId: data.categoryId,
-          month,
-          year,
-          amount: convertedAmount,
-          currency: user.currency,
-        } as any,
-      });
-    }
-  }
-
   return transaction;
 }
 
