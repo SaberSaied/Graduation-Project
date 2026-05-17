@@ -1,5 +1,5 @@
 {
-  "name": "finance-manager-api",
+  "name": "smart-finance-ai",
   "version": "1.0.0",
   "description": "Personal Finance & Savings App Backend API",
   "main": "dist/index.js",

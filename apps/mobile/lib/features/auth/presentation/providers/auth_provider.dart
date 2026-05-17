@@ -23,10 +23,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> _checkAuth() async {
-    final token = await _storage.getSessionToken();
-    if (token != null && token.isNotEmpty) {
-      state = AuthState.authenticated(token);
-    } else {
+    try {
+      final token = await _storage.getSessionToken();
+      if (token != null && token.isNotEmpty) {
+        state = AuthState.authenticated(token);
+      } else {
+        state = AuthState.unauthenticated();
+      }
+    } catch (e) {
+      // If secure storage fails (e.g. Android Auto Backup mismatch), clear and reset
+      await _storage.clearAll();
       state = AuthState.unauthenticated();
     }
   }

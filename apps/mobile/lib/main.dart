@@ -16,8 +16,10 @@ void main() async {
   ]);
 
   try {
-    // Initialize Firebase using hardcoded options so it runs on all platforms without native google-services
-    if (!Platform.isLinux && !Platform.isWindows) {
+    // Initialize Firebase
+    if (Platform.isAndroid || Platform.isIOS) {
+      await Firebase.initializeApp();
+    } else if (!Platform.isLinux && !Platform.isWindows) {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );

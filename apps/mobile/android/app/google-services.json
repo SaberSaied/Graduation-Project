@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:452414717624:android:399c7eeb05b00a86ad7e4d",
         "android_client_info": {
-          "package_name": "com.example.finance_manager"
+          "package_name": "com.example.smart_finance_ai"
         }
       },
       "oauth_client": [
@@ -17,7 +17,7 @@
           "client_id": "452414717624-bdeiqlg62avo82mv9420orqdtjt8hfe3.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.example.finance_manager",
+            "package_name": "com.example.smart_finance_ai",
             "certificate_hash": "6ef9a518edaf8279cf9e24ea867323662ae80abe"
           }
         },
